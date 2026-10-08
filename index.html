@@ -303,7 +303,7 @@
                     }
                     
                     // Buscar la ubicación del campo de firma para poner el dibujo ahí
-                    if (!firmaColocada && (name.includes('firma') || name.includes('sign') || name.includes('evaluado'))) {
+                    if (!firmaColocada && (name.includes('firma') || name.includes('sign') || name.includes('evaluado') || name.includes('recibi') || name.includes('recibí'))) {
                         try {
                             const widgets = field.acroField.getWidgets();
                             if (widgets && widgets.length > 0) {
