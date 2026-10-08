@@ -314,7 +314,7 @@
                                 const pageRef = widgets[0].P();
                                 if (pageRef) {
                                     for (let i = 0; i < pages.length; i++) {
-                                        if (pages[i].ref === pageRef) { widgetPage = pages[i]; break; }
+                                        if (pages[i].ref.toString() === pageRef.toString()) { widgetPage = pages[i]; break; }
                                     }
                                 }
 
@@ -322,10 +322,10 @@
                                 sigPageToDraw = widgetPage;
                                 sigDrawOptions = { 
                                     x: rect.x, 
-                                    // Ajustamos un poco Y hacia arriba por si el cuadro es muy delgado
-                                    y: rect.y, 
-                                    width: signatureDims.width, 
-                                    height: signatureDims.height 
+                                    // Ajustamos un poco Y para centrarla en la línea
+                                    y: rect.y - 10, 
+                                    width: 180, // Tamaño fijo generoso
+                                    height: 70 
                                 };
                                 firmaColocada = true;
                             }
@@ -338,6 +338,9 @@
                 // Ahora sí dibujamos la firma por encima de todo
                 if (firmaColocada && sigPageToDraw && sigDrawOptions) {
                     sigPageToDraw.drawImage(signatureImage, sigDrawOptions);
+                } else {
+                    // FAILSAFE: Si no encontró la casilla, forzar la firma en la primera página visiblemente
+                    pages[0].drawImage(signatureImage, { x: 50, y: 50, width: 200, height: 80 });
                 }
             } catch (e) {
                 console.log("No se detectaron campos de formulario o hubo un error:", e);
