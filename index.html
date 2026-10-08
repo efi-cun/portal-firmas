@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal de Firmas</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); max-width: 800px; width: 100%; }
+        h1 { color: #2c3e50; text-align: center; margin-bottom: 30px; }
+        .section { background: #eef2f5; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px dashed #bdc3c7; text-align: center; }
+        .form-group { margin-bottom: 15px; text-align: left; }
+        .form-group label { display: block; font-weight: bold; margin-bottom: 5px; color: #34495e; }
+        .form-group input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 16px; }
+        .canvas-container { border: 1px solid #ccc; background-color: #fafafa; overflow: auto; max-height: 500px; display: flex; justify-content: center; position: relative; margin-bottom: 20px; }
+        canvas#pdf-render { border-bottom: 1px solid #ddd; }
+        canvas#signature-pad { border: 2px dashed #3498db; background-color: #fcfcfc; cursor: crosshair; border-radius: 5px; width: 100%; max-width: 500px; height: 200px; touch-action: none; }
+        .buttons { display: flex; gap: 15px; margin-top: 20px; width: 100%; justify-content: center; flex-wrap: wrap; }
+        button { padding: 12px 24px; border: none; border-radius: 5px; color: white; cursor: pointer; font-size: 16px; font-weight: bold; transition: background 0.3s; }
+        button:disabled { background-color: #95a5a6; cursor: not-allowed; }
+        .btn-primary { background-color: #3498db; }
+        .btn-primary:hover { background-color: #2980b9; }
+        .btn-danger { background-color: #e74c3c; }
+        .btn-danger:hover { background-color: #c0392b; }
+        .btn-success { background-color: #2ecc71; width: 100%; font-size: 18px; padding: 15px; }
+        .btn-success:hover { background-color: #27ae60; }
+        #status-message { margin-top: 15px; font-weight: bold; text-align: center; padding: 10px; border-radius: 5px; display: none; }
+        .status-loading { background-color: #f39c12; color: white; }
+        .status-success { background-color: #2ecc71; color: white; }
+        .status-error { background-color: #e74c3c; color: white; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+</head>
+<body>
+
+<div class="container" id="admin-view" style="display: none;">
+    <h1>Portal Administrativo</h1>
+    <p style="text-align:center;">Sube el PDF con campos digitales y envíalo al empleado.</p>
+    
+    <div class="section">
+        <div class="form-group">
+            <label for="pdf-upload">1. Selecciona el PDF a enviar:</label>
+            <input type="file" id="pdf-upload" accept="application/pdf" />
+        </div>
+        <div class="form-group">
+            <label for="email-destino">2. Correo del empleado que debe firmar:</label>
+            <input type="email" id="email-destino" placeholder="ejemplo@correo.com">
+        </div>
+        <button class="btn-primary" id="btn-enviar-correo" style="width: 100%; margin-top:10px;">Subir y Enviar por Correo</button>
+    </div>
+    <div id="admin-status"></div>
+</div>
+
+<div class="container" id="signer-view" style="display: none;">
+    <h1>Firma de Documento</h1>
+    <p style="text-align:center;">Por favor, revisa el documento, completa tus datos y dibuja tu firma.</p>
+    
+    <div id="signer-status"></div>
+
+    <div class="canvas-container" id="pdf-container" style="display: none;">
+        <canvas id="pdf-render"></canvas>
+    </div>
+    
+    <div style="text-align: center; margin-bottom: 20px; display: none;" id="page-info">
+        <button id="prev-page" class="btn-primary">Anterior</button>
+        <span style="margin: 0 15px; font-weight: bold; font-size: 16px;">Página <span id="page-num"></span> de <span id="page-count"></span></span>
+        <button id="next-page" class="btn-primary">Siguiente</button>
+    </div>
+
+    <div class="section" id="signature-section" style="display: none; flex-direction: column; align-items: center;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; max-width: 600px; margin-bottom: 20px;">
+            <div class="form-group">
+                <label for="nombre">Nombre Completo:</label>
+                <input type="text" id="nombre" required>
+            </div>
+            <div class="form-group">
+                <label for="cargo">Cargo:</label>
+                <input type="text" id="cargo" required>
+            </div>
+            <div class="form-group" style="grid-column: span 2;">
+                <label for="fecha">Fecha:</label>
+                <input type="date" id="fecha" required>
+            </div>
+        </div>
+
+        <h3>Dibuja tu firma</h3>
+        <canvas id="signature-pad"></canvas>
+        <div class="buttons">
+            <button class="btn-danger" id="clear-signature">Limpiar Firma</button>
+        </div>
+
+        <div style="width: 100%; margin-top: 30px;">
+            <button class="btn-success" id="apply-signature">Firmar y Enviar a la Empresa</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- URL DE GOOGLE APPS SCRIPT ---
+    const GOOGLE_APP_URL = "https://script.google.com/macros/s/AKfycbzYnoNpWJE6nkVIjAC2469JoBuRkI4DIn-TszbHbl4mydIUMraN7zuxGFaCCYyyn_Aq0Q/exec";
+    
+    // Variables globales
+    let pdfDoc = null;
+    let pageNum = 1;
+    let canvas = document.getElementById('pdf-render');
+    let ctx = canvas.getContext('2d');
+    let pdfBytes = null; 
+    let fileName = "Documento.pdf";
+    let docId = null;
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    let signaturePad = new SignaturePad(document.getElementById('signature-pad'));
+
+    document.getElementById('fecha').valueAsDate = new Date();
+
+    // Determinar qué vista mostrar (Admin vs Signer)
+    const urlParams = new URLSearchParams(window.location.search);
+    docId = urlParams.get('docId');
+
+    if (docId) {
+        // MODO FIRMANTE
+        document.getElementById('signer-view').style.display = 'flex';
+        document.getElementById('signer-view').style.flexDirection = 'column';
+        fileName = urlParams.get('fileName') || "Documento_Firmado.pdf";
+        descargarYMostrarPDF(docId);
+    } else {
+        // MODO ADMINISTRADOR
+        document.getElementById('admin-view').style.display = 'block';
+    }
+
+    // ==========================================
+    // LÓGICA DEL ADMINISTRADOR
+    // ==========================================
+    document.getElementById('btn-enviar-correo').addEventListener('click', async () => {
+        const fileInput = document.getElementById('pdf-upload');
+        const emailInput = document.getElementById('email-destino').value;
+        const statusDiv = document.getElementById('admin-status');
+
+        if (!fileInput.files[0] || !emailInput) {
+            alert("Por favor selecciona un PDF e ingresa un correo."); return;
+        }
+
+        const file = fileInput.files[0];
+        statusDiv.className = 'status-loading'; statusDiv.style.display = 'block';
+        statusDiv.textContent = "Subiendo archivo y enviando correo... (esto puede tardar unos segundos)";
+
+        const fileReader = new FileReader();
+        fileReader.onload = function() {
+            const bytes = new Uint8Array(this.result);
+            let binary = '';
+            for (let i = 0; i < bytes.byteLength; i++) { binary += String.fromCharCode(bytes[i]); }
+            const base64PDF = window.btoa(binary);
+
+            // IMPORTANTE: Aquí la URL de tu web actual para que el empleado sepa dónde entrar
+            // Por ahora usaremos el enlace de tu archivo local, pero cuando lo subas a github pages se actualizará
+            const currentUrl = window.location.href.split('?')[0];
+
+            fetch(GOOGLE_APP_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: "enviar_correo",
+                    emailDestino: emailInput,
+                    pdfBase64: base64PDF,
+                    fileName: file.name,
+                    pageUrl: currentUrl
+                }),
+                headers: { "Content-Type": "text/plain;charset=utf-8" }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === 'success') {
+                    statusDiv.className = 'status-success';
+                    statusDiv.textContent = "¡Correo enviado exitosamente al empleado!";
+                    fileInput.value = ""; document.getElementById('email-destino').value = "";
+                } else {
+                    statusDiv.className = 'status-error';
+                    statusDiv.textContent = "Error: " + (data.message || "Desconocido");
+                }
+            })
+            .catch(err => {
+                statusDiv.className = 'status-error';
+                statusDiv.textContent = "Fallo de red.";
+            });
+        };
+        fileReader.readAsArrayBuffer(file);
+    });
+
+    // ==========================================
+    // LÓGICA DEL FIRMANTE
+    // ==========================================
+    function descargarYMostrarPDF(id) {
+        const statusDiv = document.getElementById('signer-status');
+        statusDiv.className = 'status-loading'; statusDiv.style.display = 'block';
+        statusDiv.textContent = "Descargando documento seguro...";
+
+        fetch(GOOGLE_APP_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: "obtener_pdf", docId: id }),
+            headers: { "Content-Type": "text/plain;charset=utf-8" }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === 'success' && data.base64) {
+                statusDiv.style.display = 'none';
+                const binaryString = window.atob(data.base64);
+                pdfBytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) {
+                    pdfBytes[i] = binaryString.charCodeAt(i);
+                }
+                mostrarPDFEnPantalla(pdfBytes);
+            } else {
+                statusDiv.className = 'status-error';
+                statusDiv.textContent = "Error al descargar el PDF. Verifica el enlace.";
+            }
+        })
+        .catch(err => {
+            statusDiv.className = 'status-error';
+            statusDiv.textContent = "Error de red al descargar.";
+        });
+    }
+
+    function mostrarPDFEnPantalla(bytes) {
+        pdfjsLib.getDocument(bytes).promise.then(pdf => {
+            pdfDoc = pdf;
+            document.getElementById('page-count').textContent = pdf.numPages;
+            pageNum = 1;
+            renderPage(pageNum);
+            document.getElementById('pdf-container').style.display = 'flex';
+            document.getElementById('signature-section').style.display = 'flex';
+            document.getElementById('page-info').style.display = 'block';
+            
+            const ratio =  Math.max(window.devicePixelRatio || 1, 1);
+            const canvasSig = document.getElementById('signature-pad');
+            canvasSig.width = canvasSig.offsetWidth * ratio || 500;
+            canvasSig.height = canvasSig.offsetHeight * ratio || 200;
+            canvasSig.getContext("2d").scale(ratio, ratio);
+            signaturePad.clear();
+        });
+    }
+
+    function renderPage(num) {
+        pdfDoc.getPage(num).then(page => {
+            const viewport = page.getViewport({ scale: 1.2 });
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            page.render({ canvasContext: ctx, viewport: viewport });
+        });
+        document.getElementById('page-num').textContent = num;
+        document.getElementById('prev-page').disabled = num <= 1;
+        document.getElementById('next-page').disabled = num >= pdfDoc.numPages;
+    }
+    
+    document.getElementById('prev-page').addEventListener('click', () => { if(pageNum > 1){ pageNum--; renderPage(pageNum); } });
+    document.getElementById('next-page').addEventListener('click', () => { if(pageNum < pdfDoc.numPages){ pageNum++; renderPage(pageNum); } });
+    document.getElementById('clear-signature').addEventListener('click', () => signaturePad.clear());
+
+    document.getElementById('apply-signature').addEventListener('click', async () => {
+        const nombre = document.getElementById('nombre').value;
+        const cargo = document.getElementById('cargo').value;
+        const fecha = document.getElementById('fecha').value;
+        const statusDiv = document.getElementById('signer-status');
+
+        if (!nombre || !cargo || !fecha) { alert('Completa Nombre, Cargo y Fecha.'); return; }
+        if (signaturePad.isEmpty()) { alert('Dibuja tu firma.'); return; }
+
+        statusDiv.className = 'status-loading'; statusDiv.style.display = 'block';
+        statusDiv.textContent = "Firmando y enviando a la empresa...";
+
+        try {
+            const pdfDocLib = await PDFLib.PDFDocument.load(pdfBytes);
+            const font = await pdfDocLib.embedFont(PDFLib.StandardFonts.HelveticaBold);
+            const signatureImageBytes = signaturePad.toDataURL('image/png');
+            const signatureImage = await pdfDocLib.embedPng(signatureImageBytes);
+            
+            const pages = pdfDocLib.getPages();
+            const lastPage = pages[pages.length - 1]; 
+            const { width } = lastPage.getSize();
+            
+            // Llenar datos genéricos al final (ya que no sabemos los nombres de los AcroFields)
+            const yStart = 150; 
+            const xText = 50;   
+            const xSig = width - 250; 
+            
+            lastPage.drawText(`Nombre: ${nombre}`, { x: xText, y: yStart, size: 12, font: font, color: PDFLib.rgb(0,0,0) });
+            lastPage.drawText(`Cargo: ${cargo}`, { x: xText, y: yStart - 20, size: 12, font: font, color: PDFLib.rgb(0,0,0) });
+            lastPage.drawText(`Fecha: ${fecha}`, { x: xText, y: yStart - 40, size: 12, font: font, color: PDFLib.rgb(0,0,0) });
+            
+            const signatureDims = signatureImage.scale(0.4); 
+            lastPage.drawImage(signatureImage, { x: xSig, y: yStart - 50, width: signatureDims.width, height: signatureDims.height });
+
+            const pdfBytesModified = await pdfDocLib.save();
+            
+            let binary = '';
+            for (let i = 0; i < pdfBytesModified.byteLength; i++) { binary += String.fromCharCode(pdfBytesModified[i]); }
+            const base64PDF = window.btoa(binary);
+
+            fetch(GOOGLE_APP_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: "guardar_firma",
+                    pdfBase64: base64PDF,
+                    fileName: fileName,
+                    docId: docId
+                }),
+                headers: { "Content-Type": "text/plain;charset=utf-8" }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === 'success') {
+                    statusDiv.className = 'status-success';
+                    statusDiv.textContent = "¡Gracias! Tu documento ha sido firmado y guardado exitosamente.";
+                    document.getElementById('pdf-container').style.display = 'none';
+                    document.getElementById('signature-section').style.display = 'none';
+                    document.getElementById('page-info').style.display = 'none';
+                } else {
+                    statusDiv.className = 'status-error';
+                    statusDiv.textContent = "Error al guardar el PDF.";
+                }
+            });
+        } catch (error) {
+            statusDiv.className = 'status-error';
+            statusDiv.textContent = 'Error al generar el PDF.';
+        }
+    });
+</script>
+
+</body>
+</html>
