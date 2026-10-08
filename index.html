@@ -308,9 +308,22 @@
                             const widgets = field.acroField.getWidgets();
                             if (widgets && widgets.length > 0) {
                                 const rect = widgets[0].getRectangle();
-                                const signatureDims = signatureImage.scale(0.4); // Reducir un poco
-                                // Dibujar en la última página en esas coordenadas
-                                lastPage.drawImage(signatureImage, { 
+                                const signatureDims = signatureImage.scale(0.4); 
+                                
+                                // Encontrar la página correcta donde está esta casilla
+                                let widgetPage = lastPage;
+                                const pageRef = widgets[0].P();
+                                if (pageRef) {
+                                    for (let i = 0; i < pages.length; i++) {
+                                        if (pages[i].ref === pageRef) {
+                                            widgetPage = pages[i];
+                                            break;
+                                        }
+                                    }
+                                }
+
+                                // Dibujar en la página correcta en esas coordenadas
+                                widgetPage.drawImage(signatureImage, { 
                                     x: rect.x, 
                                     y: rect.y, 
                                     width: rect.width || signatureDims.width, 
