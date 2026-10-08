@@ -6,14 +6,14 @@
     <title>Portal de Firmas</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); max-width: 800px; width: 100%; }
+        .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); max-width: 1000px; width: 100%; }
         h1 { color: #2c3e50; text-align: center; margin-bottom: 30px; }
         .section { background: #eef2f5; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px dashed #bdc3c7; text-align: center; }
         .form-group { margin-bottom: 15px; text-align: left; }
         .form-group label { display: block; font-weight: bold; margin-bottom: 5px; color: #34495e; }
         .form-group input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 16px; }
-        .canvas-container { border: 1px solid #ccc; background-color: #fafafa; overflow: auto; max-height: 500px; display: flex; justify-content: center; position: relative; margin-bottom: 20px; }
-        canvas#pdf-render { border-bottom: 1px solid #ddd; }
+        .canvas-container { border: 1px solid #ccc; background-color: #525659; overflow: auto; width: 100%; max-height: 85vh; display: flex; justify-content: center; align-items: flex-start; padding: 20px 0; margin-bottom: 20px; border-radius: 5px; }
+        canvas#pdf-render { max-width: 90%; height: auto !important; background-color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.2); margin: auto; display: block; }
         canvas#signature-pad { border: 2px dashed #3498db; background-color: #fcfcfc; cursor: crosshair; border-radius: 5px; width: 100%; max-width: 500px; height: 200px; touch-action: none; }
         .buttons { display: flex; gap: 15px; margin-top: 20px; width: 100%; justify-content: center; flex-wrap: wrap; }
         button { padding: 12px 24px; border: none; border-radius: 5px; color: white; cursor: pointer; font-size: 16px; font-weight: bold; transition: background 0.3s; }
@@ -242,7 +242,7 @@
 
     function renderPage(num) {
         pdfDoc.getPage(num).then(page => {
-            const viewport = page.getViewport({ scale: 1.2 });
+            const viewport = page.getViewport({ scale: 2.0 }); // Escala alta para mayor nitidez
             canvas.height = viewport.height;
             canvas.width = viewport.width;
             page.render({ canvasContext: ctx, viewport: viewport });
@@ -276,19 +276,69 @@
             
             const pages = pdfDocLib.getPages();
             const lastPage = pages[pages.length - 1]; 
-            const { width } = lastPage.getSize();
+            const { width, height } = lastPage.getSize();
             
-            // Llenar datos genéricos al final (ya que no sabemos los nombres de los AcroFields)
-            const yStart = 150; 
-            const xText = 50;   
-            const xSig = width - 250; 
+            let firmaColocada = false;
+            let camposLlenados = false;
+
+            // Intentar rellenar los campos digitales (AcroForms)
+            try {
+                const form = pdfDocLib.getForm();
+                const fields = form.getFields();
+                
+                fields.forEach(field => {
+                    const name = field.getName().toLowerCase();
+                    
+                    // Llenar campos de texto
+                    if (typeof field.setText === 'function') {
+                        if (name.includes('nombre') || name.includes('evaluado')) { field.setText(nombre); camposLlenados = true; }
+                        if (name.includes('cargo')) { field.setText(cargo); camposLlenados = true; }
+                        if (name.includes('fecha') || name.includes('date')) { field.setText(fecha); camposLlenados = true; }
+                    }
+                    
+                    // Buscar la ubicación del campo de firma para poner el dibujo ahí
+                    if (!firmaColocada && (name.includes('firma') || name.includes('sign') || name.includes('evaluado'))) {
+                        try {
+                            const widgets = field.acroField.getWidgets();
+                            if (widgets && widgets.length > 0) {
+                                const rect = widgets[0].getRectangle();
+                                const signatureDims = signatureImage.scale(0.4); // Reducir un poco
+                                // Dibujar en la última página en esas coordenadas
+                                lastPage.drawImage(signatureImage, { 
+                                    x: rect.x, 
+                                    y: rect.y, 
+                                    width: rect.width || signatureDims.width, 
+                                    height: rect.height || signatureDims.height 
+                                });
+                                firmaColocada = true;
+                            }
+                        } catch(e) { console.log(e); }
+                    }
+                });
+                
+                // Aplanar el formulario para que no se pueda editar más
+                form.flatten();
+            } catch (e) {
+                console.log("No se detectaron campos de formulario o hubo un error:", e);
+            }
             
-            lastPage.drawText(`Nombre: ${nombre}`, { x: xText, y: yStart, size: 12, font: font, color: PDFLib.rgb(0,0,0) });
-            lastPage.drawText(`Cargo: ${cargo}`, { x: xText, y: yStart - 20, size: 12, font: font, color: PDFLib.rgb(0,0,0) });
-            lastPage.drawText(`Fecha: ${fecha}`, { x: xText, y: yStart - 40, size: 12, font: font, color: PDFLib.rgb(0,0,0) });
-            
-            const signatureDims = signatureImage.scale(0.4); 
-            lastPage.drawImage(signatureImage, { x: xSig, y: yStart - 50, width: signatureDims.width, height: signatureDims.height });
+            // Si no se pudo colocar en campos digitales, lo ponemos al final como método de respaldo
+            if (!firmaColocada || !camposLlenados) {
+                const yStart = 150; 
+                const xText = 50;   
+                const xSig = width - 250; 
+                
+                if (!camposLlenados) {
+                    lastPage.drawText(`Nombre: ${nombre}`, { x: xText, y: yStart, size: 12, font: font, color: PDFLib.rgb(0,0,0) });
+                    lastPage.drawText(`Cargo: ${cargo}`, { x: xText, y: yStart - 20, size: 12, font: font, color: PDFLib.rgb(0,0,0) });
+                    lastPage.drawText(`Fecha: ${fecha}`, { x: xText, y: yStart - 40, size: 12, font: font, color: PDFLib.rgb(0,0,0) });
+                }
+                
+                if (!firmaColocada) {
+                    const signatureDims = signatureImage.scale(0.4); 
+                    lastPage.drawImage(signatureImage, { x: xSig, y: yStart - 50, width: signatureDims.width, height: signatureDims.height });
+                }
+            }
 
             const pdfBytesModified = await pdfDocLib.save();
             
