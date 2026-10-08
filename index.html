@@ -285,6 +285,8 @@
             
             let firmaColocada = false;
             let camposLlenados = false;
+            let sigPageToDraw = null;
+            let sigDrawOptions = null;
 
             // Intentar rellenar los campos digitales (AcroForms)
             try {
@@ -294,7 +296,6 @@
                 fields.forEach(field => {
                     const name = field.getName().toLowerCase();
                     
-                    // Llenar campos de texto
                     if (typeof field.setText === 'function') {
                         if (name.includes('nombre') || name.includes('evaluado')) { field.setText(nombre); camposLlenados = true; }
                         if (name.includes('cedula') || name.includes('cédula') || name.includes('documento') || name.includes('d.n.i') || name.includes('dni') || name.includes('identificacion')) { field.setText(cedula); camposLlenados = true; }
@@ -302,7 +303,6 @@
                         if (name.includes('fecha') || name.includes('date')) { field.setText(fecha); camposLlenados = true; }
                     }
                     
-                    // Buscar la ubicación del campo de firma para poner el dibujo ahí
                     if (!firmaColocada && (name.includes('firma') || name.includes('sign') || name.includes('evaluado') || name.includes('recibi') || name.includes('recibí'))) {
                         try {
                             const widgets = field.acroField.getWidgets();
@@ -310,33 +310,35 @@
                                 const rect = widgets[0].getRectangle();
                                 const signatureDims = signatureImage.scale(0.4); 
                                 
-                                // Encontrar la página correcta donde está esta casilla
                                 let widgetPage = lastPage;
                                 const pageRef = widgets[0].P();
                                 if (pageRef) {
                                     for (let i = 0; i < pages.length; i++) {
-                                        if (pages[i].ref === pageRef) {
-                                            widgetPage = pages[i];
-                                            break;
-                                        }
+                                        if (pages[i].ref === pageRef) { widgetPage = pages[i]; break; }
                                     }
                                 }
 
-                                // Dibujar en la página correcta en esas coordenadas
-                                widgetPage.drawImage(signatureImage, { 
+                                // Guardar opciones para dibujar DESPUÉS de aplanar el PDF
+                                sigPageToDraw = widgetPage;
+                                sigDrawOptions = { 
                                     x: rect.x, 
+                                    // Ajustamos un poco Y hacia arriba por si el cuadro es muy delgado
                                     y: rect.y, 
-                                    width: rect.width || signatureDims.width, 
-                                    height: rect.height || signatureDims.height 
-                                });
+                                    width: signatureDims.width, 
+                                    height: signatureDims.height 
+                                };
                                 firmaColocada = true;
                             }
                         } catch(e) { console.log(e); }
                     }
                 });
                 
-                // Aplanar el formulario para que no se pueda editar más
                 form.flatten();
+                
+                // Ahora sí dibujamos la firma por encima de todo
+                if (firmaColocada && sigPageToDraw && sigDrawOptions) {
+                    sigPageToDraw.drawImage(signatureImage, sigDrawOptions);
+                }
             } catch (e) {
                 console.log("No se detectaron campos de formulario o hubo un error:", e);
             }
