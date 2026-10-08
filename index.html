@@ -76,10 +76,14 @@
                 <input type="text" id="nombre" required>
             </div>
             <div class="form-group">
+                <label for="cedula">Cédula:</label>
+                <input type="text" id="cedula" required>
+            </div>
+            <div class="form-group">
                 <label for="cargo">Cargo:</label>
                 <input type="text" id="cargo" required>
             </div>
-            <div class="form-group" style="grid-column: span 2;">
+            <div class="form-group">
                 <label for="fecha">Fecha:</label>
                 <input type="date" id="fecha" required>
             </div>
@@ -258,11 +262,12 @@
 
     document.getElementById('apply-signature').addEventListener('click', async () => {
         const nombre = document.getElementById('nombre').value;
+        const cedula = document.getElementById('cedula').value;
         const cargo = document.getElementById('cargo').value;
         const fecha = document.getElementById('fecha').value;
         const statusDiv = document.getElementById('signer-status');
 
-        if (!nombre || !cargo || !fecha) { alert('Completa Nombre, Cargo y Fecha.'); return; }
+        if (!nombre || !cedula || !cargo || !fecha) { alert('Completa Nombre, Cédula, Cargo y Fecha.'); return; }
         if (signaturePad.isEmpty()) { alert('Dibuja tu firma.'); return; }
 
         statusDiv.className = 'status-loading'; statusDiv.style.display = 'block';
@@ -292,6 +297,7 @@
                     // Llenar campos de texto
                     if (typeof field.setText === 'function') {
                         if (name.includes('nombre') || name.includes('evaluado')) { field.setText(nombre); camposLlenados = true; }
+                        if (name.includes('cedula') || name.includes('cédula') || name.includes('documento') || name.includes('d.n.i') || name.includes('dni') || name.includes('identificacion')) { field.setText(cedula); camposLlenados = true; }
                         if (name.includes('cargo')) { field.setText(cargo); camposLlenados = true; }
                         if (name.includes('fecha') || name.includes('date')) { field.setText(fecha); camposLlenados = true; }
                     }
@@ -330,8 +336,9 @@
                 
                 if (!camposLlenados) {
                     lastPage.drawText(`Nombre: ${nombre}`, { x: xText, y: yStart, size: 12, font: font, color: PDFLib.rgb(0,0,0) });
-                    lastPage.drawText(`Cargo: ${cargo}`, { x: xText, y: yStart - 20, size: 12, font: font, color: PDFLib.rgb(0,0,0) });
-                    lastPage.drawText(`Fecha: ${fecha}`, { x: xText, y: yStart - 40, size: 12, font: font, color: PDFLib.rgb(0,0,0) });
+                    lastPage.drawText(`Cédula: ${cedula}`, { x: xText, y: yStart - 20, size: 12, font: font, color: PDFLib.rgb(0,0,0) });
+                    lastPage.drawText(`Cargo: ${cargo}`, { x: xText, y: yStart - 40, size: 12, font: font, color: PDFLib.rgb(0,0,0) });
+                    lastPage.drawText(`Fecha: ${fecha}`, { x: xText, y: yStart - 60, size: 12, font: font, color: PDFLib.rgb(0,0,0) });
                 }
                 
                 if (!firmaColocada) {
