@@ -428,6 +428,7 @@
     <div class="buttons" style="margin-top: 25px;">
         <button class="btn-success btn-action-main" id="btn-enviar-correo">Subir y Enviar por Correo al Empleado</button>
         <button type="button" class="btn-secondary" id="btn-descargar-admin" style="margin-top: 10px;">💾 Descargar Copia Preparada (Prueba Local)</button>
+        <button type="button" class="btn-primary" id="btn-probar-firmante" style="margin-top: 10px; background-color: #2b5876;">📝 Probar Firma de Empleado (Vista Previa Interactiva)</button>
     </div>
     
     <div id="admin-status"></div>
@@ -438,6 +439,7 @@
 <!-- VISTA DEL FIRMANTE / EMPLEADO (La persona que recibe el archivo)          -->
 <!-- ========================================================================= -->
 <div class="container" id="signer-view" style="display: none;">
+    <button type="button" class="btn-secondary" id="btn-volver-admin" style="display: none; margin-bottom: 15px;">⬅️ Volver al Modo Evaluador / Administrador</button>
     <h1>Firma de Documento</h1>
     <p class="subtitle">Por favor, revisa el documento, completa tus datos personales y dibuja tu firma para estampar en las casillas correspondientes.</p>
     
@@ -778,6 +780,7 @@
         cleanDummyText(form, 'Firma_Digital_Recibi_p3', ['firma', 'quien recibe']);
         cleanDummyText(form, 'Firma_Evaluado_p5', ['firma', 'quien recibe']);
         cleanDummyText(form, 'Firma_Capital_Social_p5', ['firma', 'quien recibe']);
+        cleanDummyText(form, 'Firma_Evaluador_p5', ['firma', 'evaluador']);
         cleanDummyText(form, 'Cedula_Recibi_p1', ['cedula', 'cédula', 'quien recibe']);
         cleanDummyText(form, 'Cedula_Recibi_p2', ['cedula', 'cédula', 'quien recibe']);
         cleanDummyText(form, 'Cedula_Recibi_p3', ['cedula', 'cédula', 'quien recibe']);
@@ -801,16 +804,15 @@
 
             if (target) {
                 target.page.drawImage(evalSigImage, {
-                    x: target.x,
-                    y: target.y,
-                    width: target.width,
-                    height: target.height
+                    x: target.x + 2,
+                    y: target.y + 2,
+                    width: Math.max(target.width - 4, 10),
+                    height: Math.max(target.height - 4, 10)
                 });
             } else {
-                // Posición de respaldo en hoja 5
+                // Posición de respaldo en hoja 5 (casilla del evaluador)
                 const p5 = pages[pages.length - 1];
-                const { height: h5 } = p5.getSize();
-                p5.drawImage(evalSigImage, { x: 125, y: h5 - 460, width: 220, height: 35 });
+                p5.drawImage(evalSigImage, { x: 127, y: 333.5, width: 219, height: 18.5 });
             }
         }
 
@@ -887,6 +889,50 @@
             alert("Error al generar copia local: " + e.message);
         }
     });
+
+    // Botón: Probar Firma de Empleado (Vista Previa Interactiva directa sin necesidad de correo)
+    const btnProbarFirmante = document.getElementById('btn-probar-firmante');
+    if (btnProbarFirmante) {
+        btnProbarFirmante.addEventListener('click', async () => {
+            const fileInput = document.getElementById('pdf-upload');
+            if (!fileInput.files[0]) {
+                alert("Selecciona un archivo PDF primero en el paso 1.");
+                return;
+            }
+            try {
+                const file = fileInput.files[0];
+                fileName = file.name;
+                const statusDiv = document.getElementById('admin-status');
+                statusDiv.className = 'status-loading';
+                statusDiv.style.display = 'block';
+                statusDiv.textContent = "Preparando documento y cargando vista previa interactiva de firma...";
+
+                const preparedBytes = await prepararPDFPorAdmin(file);
+                pdfBytes = preparedBytes;
+
+                statusDiv.style.display = 'none';
+                document.getElementById('admin-view').style.display = 'none';
+                document.getElementById('signer-view').style.display = 'block';
+                
+                const btnVolver = document.getElementById('btn-volver-admin');
+                if (btnVolver) btnVolver.style.display = 'inline-block';
+
+                mostrarPDFEnPantalla(pdfBytes);
+                preCargarDatosFirmante(pdfBytes);
+            } catch(e) {
+                alert("Error al cargar vista de prueba: " + e.message);
+            }
+        });
+    }
+
+    const btnVolverAdmin = document.getElementById('btn-volver-admin');
+    if (btnVolverAdmin) {
+        btnVolverAdmin.addEventListener('click', () => {
+            document.getElementById('signer-view').style.display = 'none';
+            document.getElementById('admin-view').style.display = 'block';
+            setTimeout(adjustAdminCanvas, 100);
+        });
+    }
 
 
     // ==========================================
@@ -1025,15 +1071,82 @@
                 // Excluir de forma estricta los campos del Evaluador y Jefe
                 const isEvaluador = name.includes('evaluador');
                 const isJefe = name.includes('jefe');
+                const isSignatureField = name.includes('firma');
 
-                // 1. Text Fields del Destinatario (Persona que recibe)
-                if (typeof field.setText === 'function') {
+                // 1. CASILLAS DE FIRMA: Únicamente campos que incluyan 'firma'
+                if (isSignatureField) {
+                    // Firmas del destinatario (empleado):
+                    // - Hojas 1, 2, 3: Firma_Digital_Recibi_p1, p2, p3
+                    // - Hoja 5: Firma_Evaluado_p5 (Evaluado)
+                    // - Hoja 5: Firma_Capital_Social_p5 (Recibido por en Espacio de Capital Social)
+                    // Se excluye estrictamente Firma_Evaluador_p5
+                    const isRecipientSig = !isEvaluador && (
+                        name.includes('recibi') || 
+                        name.includes('recibí') || 
+                        name.includes('evaluado') || 
+                        name.includes('capital') ||
+                        name.includes('digital')
+                    );
+
+                    if (isRecipientSig) {
+                        try {
+                            if (typeof field.setText === 'function') {
+                                field.setText(''); // Limpiar texto de placeholder como 'firma' o 'firma quien recibe'
+                            }
+                            const widgets = field.acroField.getWidgets();
+                            if (widgets && widgets.length > 0) {
+                                const widget = widgets[0];
+                                const rect = widget.getRectangle();
+                                
+                                let widgetPage = null;
+                                try {
+                                    const pageRef = widget.P();
+                                    if (pageRef) {
+                                        for (let i = 0; i < pages.length; i++) {
+                                            if (pages[i].ref.toString() === pageRef.toString()) {
+                                                widgetPage = pages[i];
+                                                break;
+                                            }
+                                        }
+                                    }
+                                } catch (errP) {}
+
+                                if (!widgetPage) {
+                                    const pMatch = rawName.match(/_p(\d+)$/i);
+                                    if (pMatch) {
+                                        const pIdx = parseInt(pMatch[1], 10) - 1;
+                                        if (pIdx >= 0 && pIdx < pages.length) {
+                                            widgetPage = pages[pIdx];
+                                        }
+                                    }
+                                }
+
+                                if (!widgetPage) {
+                                    widgetPage = pages[0];
+                                }
+
+                                targetsToSign.push({
+                                    page: widgetPage,
+                                    x: rect.x,
+                                    y: rect.y,
+                                    width: rect.width || 140,
+                                    height: rect.height || 40,
+                                    fieldName: rawName
+                                });
+                                firmaColocada = true;
+                            }
+                        } catch(e) {}
+                    }
+                }
+                // 2. CAMPOS DE TEXTO: (Cédula, Cargo, Nombre, Fecha, Comentarios)
+                // Se asignan únicamente si NO es firma y NO pertenece al Evaluador ni al Jefe
+                else if (typeof field.setText === 'function') {
                     if (!isEvaluador && !isJefe) {
-                        // Cédula en Hojas 1, 2, 3 y Hoja 4 (Eval_Cedula_Evaluado_p4)
+                        // Cédula en Hojas 1, 2, 3 (Cedula_Recibi_p1..3) y Hoja 4 (Eval_Cedula_Evaluado_p4)
                         if (name.includes('cedula') || name.includes('cédula') || name.includes('documento') || name.includes('dni')) {
                             field.setText(cedula);
                         }
-                        // Cargo en Hoja 4, Hoja 5 (Cargo_Evaluado_p5) y Hoja 5 (Cargo_Capital_Social_p5)
+                        // Cargo en Hoja 4 (Eval_Cargo_Evaluado_p4), Hoja 5 (Cargo_Evaluado_p5) y Hoja 5 (Cargo_Capital_Social_p5)
                         else if (name.includes('cargo')) {
                             field.setText(cargo);
                         }
@@ -1042,11 +1155,10 @@
                             field.setText(comentarios);
                         }
                         // Nombre en Hoja 4 (Eval_Nombre_Evaluado_p4), Hoja 5 (Nombre_Evaluado_p5) y Hoja 5 (Nombre_Capital_Social_p5)
-                        // NOTA CLAVE: Solo campos de Nombre, sin confundir con comentarios ni firma
-                        else if (name.includes('nombre') && !name.includes('firma') && !name.includes('comentarios')) {
+                        else if (name.includes('nombre')) {
                             field.setText(nombre);
                         }
-                        // Fecha en Hojas 1, 2, 3 y Hoja 5 (Fecha_Capital_Social_p5)
+                        // Fecha en Hojas 1, 2, 3 (Fecha_Recibi_p1..3) y Hoja 5 (Fecha_Capital_Social_p5)
                         else if (name.includes('fecha') || name.includes('date')) {
                             if (name.includes('recibi') || name.includes('capital')) {
                                 field.setText(fechaDisplay);
@@ -1054,81 +1166,21 @@
                         }
                     }
                 }
-
-                // 2. Signature Fields del Destinatario (Persona que recibe)
-                // - Hojas 1, 2, 3: Firma_Digital_Recibi_p1, p2, p3
-                // - Hoja 5: Firma_Evaluado_p5 (Evaluado)
-                // - Hoja 5: Firma_Capital_Social_p5 (Espacio Recibido por Capital Social)
-                const isRecipientSig = (
-                    name.includes('recibi') || 
-                    name.includes('recibí') || 
-                    (name.includes('evaluado') && !isEvaluador && name.includes('firma')) ||
-                    (name.includes('capital') && name.includes('firma')) ||
-                    (name.includes('firma_digital') && !isEvaluador)
-                );
-
-                if (isRecipientSig) {
-                    try {
-                        if (typeof field.setText === 'function') {
-                            field.setText(''); // Limpiar texto de placeholder como 'firma' o 'firma quien recibe'
-                        }
-                        const widgets = field.acroField.getWidgets();
-                        if (widgets && widgets.length > 0) {
-                            const widget = widgets[0];
-                            const rect = widget.getRectangle();
-                            
-                            let widgetPage = null;
-                            try {
-                                const pageRef = widget.P();
-                                if (pageRef) {
-                                    for (let i = 0; i < pages.length; i++) {
-                                        if (pages[i].ref.toString() === pageRef.toString()) {
-                                            widgetPage = pages[i];
-                                            break;
-                                        }
-                                    }
-                                }
-                            } catch (errP) {}
-
-                            if (!widgetPage) {
-                                const pMatch = rawName.match(/_p(\d+)$/i);
-                                if (pMatch) {
-                                    const pIdx = parseInt(pMatch[1], 10) - 1;
-                                    if (pIdx >= 0 && pIdx < pages.length) {
-                                        widgetPage = pages[pIdx];
-                                    }
-                                }
-                            }
-
-                            if (!widgetPage) {
-                                widgetPage = pages[0];
-                            }
-
-                            targetsToSign.push({
-                                page: widgetPage,
-                                x: rect.x,
-                                y: rect.y,
-                                width: rect.width || 140,
-                                height: rect.height || 40,
-                                fieldName: rawName
-                            });
-                            firmaColocada = true;
-                        }
-                    } catch(e) {}
-                }
             });
 
             // Aplanar formulario para sellar permanentemente todos los campos de texto
             form.flatten();
 
-            // Estampar la firma del empleado en cada casilla objetivo identificada
+            // Estampar la firma del empleado en cada casilla objetivo identificada (con 2pt de padding para que encaje perfecto)
             if (firmaColocada && targetsToSign.length > 0) {
                 targetsToSign.forEach(target => {
+                    const padX = 2;
+                    const padY = 2;
                     target.page.drawImage(signatureImage, {
-                        x: target.x,
-                        y: target.y,
-                        width: target.width,
-                        height: target.height
+                        x: target.x + padX,
+                        y: target.y + padY,
+                        width: Math.max(target.width - (padX * 2), 10),
+                        height: Math.max(target.height - (padY * 2), 10)
                     });
                 });
             } else {
