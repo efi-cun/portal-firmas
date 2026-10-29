@@ -439,7 +439,7 @@
 <!-- ========================================================================= -->
 <div class="container" id="signer-view" style="display: none;">
     <h1>Firma de Documento</h1>
-    <p class="subtitle">Por favor, revisa el documento, completa tus datos personales y dibuja tu firma para estampar en las hojas 1, 2, 3 y 5.</p>
+    <p class="subtitle">Por favor, revisa el documento, completa tus datos personales y dibuja tu firma para estampar en las casillas correspondientes.</p>
     
     <div id="signer-status"></div>
 
@@ -461,11 +461,11 @@
                 <input type="text" id="nombre" required placeholder="Tu nombre completo">
             </div>
             <div class="form-group">
-                <label for="cedula">Cédula de quien Recibe (Hojas 1, 2 y 3):</label>
+                <label for="cedula">Cédula de quien Recibe:</label>
                 <input type="text" id="cedula" required placeholder="Número de cédula">
             </div>
             <div class="form-group">
-                <label for="cargo">Cargo de quien Recibe (Hoja 5):</label>
+                <label for="cargo">Cargo de quien Recibe:</label>
                 <input type="text" id="cargo" required placeholder="Tu cargo actual">
             </div>
             <div class="form-group">
@@ -475,7 +475,7 @@
         </div>
 
         <div class="sig-wrapper">
-            <label style="font-weight: 600; margin-bottom: 8px;">Dibuja tu firma (se estampará en las Hojas 1, 2, 3 y 5):</label>
+            <label style="font-weight: 600; margin-bottom: 8px;">Dibuja tu firma (se estampará en las casillas de Recibí y Evaluado):</label>
             <canvas id="signature-pad" class="signature-canvas"></canvas>
             <div class="buttons">
                 <button class="btn-danger" id="clear-signature">Limpiar Firma</button>
@@ -586,7 +586,7 @@
             const field = form.getField(fieldName);
             if (field && typeof field.getText === 'function') {
                 const val = (field.getText() || '').trim().toLowerCase();
-                if (dummyKeywords.some(w => val === w || val.startsWith(w))) {
+                if (dummyKeywords.some(w => val === w || val.startsWith(w) || val.includes(w))) {
                     field.setText('');
                 }
             }
@@ -671,13 +671,13 @@
             try { empCedula = form.getTextField('Eval_Cedula_Evaluado_p4').getText(); } catch(e){}
             try { empCargo = form.getTextField('Eval_Cargo_Evaluado_p4').getText() || form.getTextField('Cargo_Evaluado_p5').getText(); } catch(e){}
 
-            const isDummy = (str) => !str || str.toLowerCase().includes('evaluado') || str.toLowerCase().includes('cargo');
+            const isDummy = (str) => !str || str.toLowerCase().includes('recibe') || str.toLowerCase().includes('evaluado') || str.toLowerCase().includes('cargo');
 
             if (empName || empCedula) {
                 infoDiv.innerHTML = `
                     <strong>📄 Documento Cargado:</strong> ${file.name} (${loadedDoc.getPageCount()} páginas)<br>
                     <strong>Empleado:</strong> ${isDummy(empName) ? 'Por definir' : empName} | 
-                    <strong>Cédula:</strong> ${empCedula || 'Por definir'} | 
+                    <strong>Cédula:</strong> ${isDummy(empCedula) ? 'Por definir' : empCedula} | 
                     <strong>Cargo:</strong> ${isDummy(empCargo) ? 'Por definir' : empCargo}
                 `;
                 infoDiv.style.display = 'block';
@@ -717,7 +717,7 @@
         const form = pdfDocLib.getForm();
         const pages = pdfDocLib.getPages();
 
-        // 1. Datos del Jefe Inmediato
+        // 1. Datos del Jefe Inmediato (Hoja 4)
         const jefeNombre = document.getElementById('admin-jefe-nombre').value.trim();
         const jefeCedula = document.getElementById('admin-jefe-cedula').value.trim();
         const jefeCargo = document.getElementById('admin-jefe-cargo').value.trim();
@@ -725,7 +725,7 @@
         setFieldSafe(form, 'Eval_DNI_Jefe_p4', jefeCedula);
         setFieldSafe(form, 'Eval_Cargo_Jefe_p4', jefeCargo);
 
-        // 2. Datos de Contrato y Período de Prueba
+        // 2. Datos de Contrato y Período de Prueba (Hoja 4)
         const tipoContrato = document.getElementById('admin-tipo-contrato').value.trim();
         let fechaInicioPrueba = document.getElementById('admin-fecha-inicio-prueba').value;
         if (fechaInicioPrueba && fechaInicioPrueba.includes('-')) {
@@ -744,7 +744,7 @@
         setFieldSafe(form, 'Eval_Fecha_Fin_Prueba_p4', fechaFinPrueba);
         setFieldSafe(form, 'Eval_Tipo_Evaluacion_p4', periodoPrueba);
 
-        // 3. Datos del Evaluador
+        // 3. Datos del Evaluador (Hoja 5)
         const evaluadorNombre = document.getElementById('admin-evaluador-nombre').value.trim();
         const evaluadorCargo = document.getElementById('admin-evaluador-cargo').value.trim();
         setFieldSafe(form, 'Nombre_Evaluador_p5', evaluadorNombre);
@@ -767,17 +767,24 @@
             setFieldSafe(form, `Compromiso_${i}_Seguimiento_p5`, seg);
         }
 
-        // 5. Limpieza de placeholders antiguos de firma/cédula/cargo para el que recibe
-        cleanDummyText(form, 'Firma_Digital_Recibi_p1', ['firma']);
-        cleanDummyText(form, 'Firma_Digital_Recibi_p2', ['firma']);
-        cleanDummyText(form, 'Firma_Digital_Recibi_p3', ['firma']);
-        cleanDummyText(form, 'Firma_Evaluado_p5', ['firma']);
-        cleanDummyText(form, 'Cedula_Recibi_p1', ['cedula', 'cédula']);
-        cleanDummyText(form, 'Cedula_Recibi_p2', ['cedula', 'cédula']);
-        cleanDummyText(form, 'Cedula_Recibi_p3', ['cedula', 'cédula']);
-        cleanDummyText(form, 'Cargo_Evaluado_p5', ['cargo']);
+        // 5. Limpieza de placeholders antiguos de firma/cédula/cargo para quien recibe
+        cleanDummyText(form, 'Firma_Digital_Recibi_p1', ['firma', 'quien recibe']);
+        cleanDummyText(form, 'Firma_Digital_Recibi_p2', ['firma', 'quien recibe']);
+        cleanDummyText(form, 'Firma_Digital_Recibi_p3', ['firma', 'quien recibe']);
+        cleanDummyText(form, 'Firma_Evaluado_p5', ['firma', 'quien recibe']);
+        cleanDummyText(form, 'Firma_Capital_Social_p5', ['firma', 'quien recibe']);
+        cleanDummyText(form, 'Cedula_Recibi_p1', ['cedula', 'cédula', 'quien recibe']);
+        cleanDummyText(form, 'Cedula_Recibi_p2', ['cedula', 'cédula', 'quien recibe']);
+        cleanDummyText(form, 'Cedula_Recibi_p3', ['cedula', 'cédula', 'quien recibe']);
+        cleanDummyText(form, 'Eval_Cedula_Evaluado_p4', ['cedula', 'cédula', 'quien recibe']);
+        cleanDummyText(form, 'Eval_Nombre_Evaluado_p4', ['nombre quien recibe']);
+        cleanDummyText(form, 'Nombre_Evaluado_p5', ['nombre quien recibe']);
+        cleanDummyText(form, 'Nombre_Capital_Social_p5', ['nombre  de quien recibe', 'nombre de quien recibe']);
+        cleanDummyText(form, 'Cargo_Evaluado_p5', ['cargo quien recibe']);
+        cleanDummyText(form, 'Cargo_Capital_Social_p5', ['cargo quien recibe']);
+        cleanDummyText(form, 'Eval_Cargo_Evaluado_p4', ['cargo quien recibe']);
 
-        // 6. Firma del Evaluador (si se dibujó en el canvas)
+        // 6. Firma del Evaluador (si se dibujó en el canvas del administrador)
         if (adminSignaturePad && !adminSignaturePad.isEmpty()) {
             const evalSigDataUrl = adminSignaturePad.toDataURL('image/png');
             const evalSigImage = await pdfDocLib.embedPng(evalSigDataUrl);
@@ -925,7 +932,7 @@
             try { c = form.getTextField('Eval_Cedula_Evaluado_p4').getText() || form.getTextField('Cedula_Recibi_p1').getText(); } catch(e){}
             try { crg = form.getTextField('Cargo_Evaluado_p5').getText() || form.getTextField('Eval_Cargo_Evaluado_p4').getText(); } catch(e){}
 
-            const isDummy = (str) => !str || str.toLowerCase().includes('cargo') || str.toLowerCase().includes('cedula') || str.toLowerCase().includes('nombre') || str.toLowerCase().includes('evaluado');
+            const isDummy = (str) => !str || str.toLowerCase().includes('cargo') || str.toLowerCase().includes('cedula') || str.toLowerCase().includes('nombre') || str.toLowerCase().includes('recibe') || str.toLowerCase().includes('evaluado');
 
             if (n && !isDummy(n)) document.getElementById('nombre').value = n;
             if (c && !isDummy(c)) document.getElementById('cedula').value = c;
@@ -970,7 +977,7 @@
     document.getElementById('prev-page').addEventListener('click', () => { if(pageNum > 1){ pageNum--; renderPage(pageNum); } });
     document.getElementById('next-page').addEventListener('click', () => { if(pageNum < pdfDoc.numPages){ pageNum++; renderPage(pageNum); } });
 
-    // Función que procesa la firma del empleado en las Hojas 1, 2, 3 y 5
+    // Función que procesa la firma del empleado en las casillas correspondientes
     async function firmarDocumentoEmpleado() {
         const nombre = document.getElementById('nombre').value.trim();
         const cedula = document.getElementById('cedula').value.trim();
@@ -1008,48 +1015,52 @@
                 const rawName = field.getName();
                 const name = rawName.toLowerCase();
 
+                // Excluir de forma estricta los campos del Evaluador y Jefe
                 const isEvaluador = name.includes('evaluador');
                 const isJefe = name.includes('jefe');
-                const isCapital = name.includes('capital');
 
                 // 1. Text Fields del Destinatario (Persona que recibe)
                 if (typeof field.setText === 'function') {
-                    if (!isEvaluador && !isJefe && !isCapital) {
-                        // Cédula en Hojas 1, 2, 3 y Hoja 4
+                    if (!isEvaluador && !isJefe) {
+                        // Cédula en Hojas 1, 2, 3 y Hoja 4 (Eval_Cedula_Evaluado_p4)
                         if (name.includes('cedula') || name.includes('cédula') || name.includes('documento') || name.includes('dni')) {
                             field.setText(cedula);
                         }
-                        // Cargo en Hoja 4 y Hoja 5
+                        // Cargo en Hoja 4, Hoja 5 (Cargo_Evaluado_p5) y Hoja 5 (Cargo_Capital_Social_p5)
                         else if (name.includes('cargo')) {
                             field.setText(cargo);
                         }
-                        // Nombre en Hoja 4 y Hoja 5
+                        // Nombre en Hoja 4, Hoja 5 (Nombre_Evaluado_p5) y Hoja 5 (Nombre_Capital_Social_p5)
                         else if (name.includes('nombre') || name.includes('evaluado')) {
                             if (!name.includes('firma')) {
                                 field.setText(nombre);
                             }
                         }
-                        // Fecha en Hojas 1, 2, 3
+                        // Fecha en Hojas 1, 2, 3 y Hoja 5 (Fecha_Capital_Social_p5)
                         else if (name.includes('fecha') || name.includes('date')) {
-                            field.setText(fechaDisplay);
+                            if (name.includes('recibi') || name.includes('capital')) {
+                                field.setText(fechaDisplay);
+                            }
                         }
                     }
                 }
 
                 // 2. Signature Fields del Destinatario (Persona que recibe)
-                // Hojas 1, 2, 3: Firma_Digital_Recibi_p1, p2, p3
-                // Hoja 5: Firma_Evaluado_p5
+                // - Hojas 1, 2, 3: Firma_Digital_Recibi_p1, p2, p3
+                // - Hoja 5: Firma_Evaluado_p5 (Evaluado)
+                // - Hoja 5: Firma_Capital_Social_p5 (Espacio Recibido por Capital Social)
                 const isRecipientSig = (
                     name.includes('recibi') || 
                     name.includes('recibí') || 
                     (name.includes('evaluado') && !isEvaluador && name.includes('firma')) ||
-                    (name.includes('firma_digital') && !isEvaluador && !isCapital)
+                    (name.includes('capital') && name.includes('firma')) ||
+                    (name.includes('firma_digital') && !isEvaluador)
                 );
 
                 if (isRecipientSig) {
                     try {
                         if (typeof field.setText === 'function') {
-                            field.setText(''); // Limpiar texto como 'firma'
+                            field.setText(''); // Limpiar texto de placeholder como 'firma' o 'firma quien recibe'
                         }
                         const widgets = field.acroField.getWidgets();
                         if (widgets && widgets.length > 0) {
@@ -1097,10 +1108,10 @@
                 }
             });
 
-            // Aplanar formulario para sellar permanentemente
+            // Aplanar formulario para sellar permanentemente todos los campos de texto
             form.flatten();
 
-            // Estampar la firma del empleado en las casillas recolectadas (Hojas 1, 2, 3 y 5)
+            // Estampar la firma del empleado en cada casilla objetivo identificada
             if (firmaColocada && targetsToSign.length > 0) {
                 targetsToSign.forEach(target => {
                     target.page.drawImage(signatureImage, {
@@ -1125,7 +1136,7 @@
         const statusDiv = document.getElementById('signer-status');
         statusDiv.className = 'status-loading'; 
         statusDiv.style.display = 'block';
-        statusDiv.textContent = "Sellando documento con tu firma en las hojas 1, 2, 3 y 5...";
+        statusDiv.textContent = "Sellando documento con tu firma en las casillas correspondientes...";
 
         try {
             const pdfBytesModified = await firmarDocumentoEmpleado();
@@ -1154,7 +1165,7 @@
             .then(data => {
                 if(data.status === 'success') {
                     statusDiv.className = 'status-success';
-                    statusDiv.innerHTML = "🎉 <strong>¡Gracias!</strong> Tu documento ha sido firmado exitosamente en las hojas 1, 2, 3 y 5, y ha sido guardado en la empresa.";
+                    statusDiv.innerHTML = "🎉 <strong>¡Gracias!</strong> Tu documento ha sido firmado exitosamente y guardado en la empresa.";
                     document.getElementById('pdf-container').style.display = 'none';
                     document.getElementById('signature-section').style.display = 'none';
                     document.getElementById('page-info').style.display = 'none';
