@@ -1,0 +1,32 @@
+function doPost(e) {
+  try {
+    var data = JSON.parse(e.postData.contents);
+    var FOLDER_PENDIENTES = "1uQiiuKYTJrWpXxqAOVrjWcTdw8YOdL9m"; 
+    var FOLDER_FIRMADOS = "1P4UXVKtlG3WOttRpR4gNcA-Id0hLx7IL"; 
+    if (data.action === "enviar_correo") {
+      var folderTemp = DriveApp.getFolderById(FOLDER_PENDIENTES);
+      var blob = Utilities.newBlob(Utilities.base64Decode(data.pdfBase64), 'application/pdf', data.fileName);
+      var file = folderTemp.createFile(blob);
+      var linkFirma = "https://efi-cun.github.io/portal-firmas/?docId=" + file.getId() + "&fileName=" + encodeURIComponent(data.fileName);
+      var mensaje = "Hola,\n\nTienes un documento pendiente por firmar. Ingresa al siguiente enlace:\n" + linkFirma;
+      MailApp.sendEmail(data.emailDestino, "Documento pendiente por firmar", mensaje);
+      return ContentService.createTextOutput(JSON.stringify({ "status": "success"})).setMimeType(ContentService.MimeType.JSON);
+    } else if (data.action === "guardar_firma") {
+      var folderFinal = DriveApp.getFolderById(FOLDER_FIRMADOS);
+      var blob2 = Utilities.newBlob(Utilities.base64Decode(data.pdfBase64), 'application/pdf', data.fileName);
+      folderFinal.createFile(blob2);
+      if (data.docId) { try { DriveApp.getFileById(data.docId).setTrashed(true); } catch(err){} }
+      return ContentService.createTextOutput(JSON.stringify({ "status": "success"})).setMimeType(ContentService.MimeType.JSON);
+    } else if (data.action === "obtener_pdf") {
+      var fileToGet = DriveApp.getFileById(data.docId);
+      var base64 = Utilities.base64Encode(fileToGet.getBlob().getBytes());
+      return ContentService.createTextOutput(JSON.stringify({ "status": "success", "base64": base64 })).setMimeType(ContentService.MimeType.JSON);
+    }
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({ "status": "error", "message": error.toString() })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doOptions(e) {
+  return ContentService.createTextOutput("").setMimeType(ContentService.MimeType.JSON).setHeader("Access-Control-Allow-Origin", "*").setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS").setHeader("Access-Control-Allow-Headers", "Content-Type");
+}

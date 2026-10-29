@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal de Firmas Digitales</title>
+    <style>
+        :root {
+            --primary: #1e5ba3;
+            --primary-hover: #16467d;
+            --success: #27ae60;
+            --success-hover: #219653;
+            --danger: #e74c3c;
+            --danger-hover: #c0392b;
+            --bg-color: #f0f4f8;
+            --card-bg: #ffffff;
+            --text-dark: #2c3e50;
+            --border-color: #dcdde1;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+            max-width: 1000px;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: var(--primary);
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        h2 {
+            color: #34495e;
+            font-size: 19px;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            padding-bottom: 6px;
+            border-bottom: 2px solid #ebedf0;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 25px;
+            font-size: 15px;
+        }
+
+        .section-box {
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #34495e;
+            font-size: 14px;
+        }
+
+        .form-group input, 
+        .form-group textarea, 
+        .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-group input:focus, 
+        .form-group textarea:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(30, 91, 163, 0.15);
+            outline: none;
+        }
+
+        .optional-details {
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            background: #ffffff;
+            margin-top: 20px;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        .optional-details summary {
+            background: #eef4fb;
+            padding: 14px 18px;
+            font-weight: 700;
+            font-size: 15px;
+            color: var(--primary);
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .optional-details summary:hover {
+            background: #e2edf9;
+        }
+
+        .optional-body {
+            padding: 20px;
+        }
+
+        .compromisos-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            margin-bottom: 15px;
+        }
+
+        .compromisos-table th {
+            background: #f1f5f9;
+            color: #475569;
+            padding: 8px 10px;
+            font-size: 13px;
+            text-align: left;
+            border: 1px solid #e2e8f0;
+        }
+
+        .compromisos-table td {
+            padding: 6px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .compromisos-table input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 13px;
+        }
+
+        .canvas-container {
+            border: 1px solid #ccc;
+            background-color: #525659;
+            overflow: auto;
+            width: 100%;
+            max-height: 80vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px 0;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+
+        canvas#pdf-render {
+            max-width: 95%;
+            height: auto !important;
+            background-color: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            margin: auto;
+            display: block;
+        }
+
+        .sig-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            margin: 15px 0;
+        }
+
+        canvas.signature-canvas {
+            border: 2px dashed var(--primary);
+            background-color: #ffffff;
+            cursor: crosshair;
+            border-radius: 8px;
+            width: 100%;
+            max-width: 520px;
+            height: 180px;
+            touch-action: none;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        .buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 15px;
+            width: 100%;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: bold;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        button:disabled {
+            background-color: #95a5a6 !important;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-primary { background-color: var(--primary); }
+        .btn-primary:hover { background-color: var(--primary-hover); }
+
+        .btn-success { background-color: var(--success); }
+        .btn-success:hover { background-color: var(--success-hover); }
+
+        .btn-danger { background-color: var(--danger); font-size: 13px; padding: 7px 14px; }
+        .btn-danger:hover { background-color: var(--danger-hover); }
+
+        .btn-secondary { background-color: #64748b; font-size: 14px; padding: 10px 18px; }
+        .btn-secondary:hover { background-color: #475569; }
+
+        .btn-action-main {
+            width: 100%;
+            font-size: 17px;
+            padding: 16px;
+            margin-top: 20px;
+        }
+
+        #admin-status, #signer-status {
+            margin-top: 15px;
+            font-weight: 600;
+            text-align: center;
+            padding: 14px;
+            border-radius: 6px;
+            display: none;
+            font-size: 15px;
+        }
+
+        .status-loading { background-color: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+        .status-success { background-color: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+        .status-error { background-color: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+
+        .badge-info {
+            background: #e0f2fe;
+            border: 1px solid #bae6fd;
+            color: #0369a1;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+</head>
+<body>
+
+<!-- ========================================================================= -->
+<!-- VISTA DEL ADMINISTRADOR / REMITENTE (La persona que envía el archivo)     -->
+<!-- ========================================================================= -->
+<div class="container" id="admin-view" style="display: none;">
+    <h1>Portal Administrativo de Envío y Evaluación</h1>
+    <p class="subtitle">Gestiona los datos de evaluación, firma como evaluador y envía el documento al empleado.</p>
+
+    <!-- 1. Cargar PDF y Correo Destinatario -->
+    <div class="section-box">
+        <h2>1. Documento y Destinatario</h2>
+        <div class="grid-2">
+            <div class="form-group">
+                <label for="pdf-upload">Selecciona el PDF (con campos digitales):</label>
+                <input type="file" id="pdf-upload" accept="application/pdf" />
+            </div>
+            <div class="form-group">
+                <label for="email-destino">Correo del empleado que debe firmar:</label>
+                <input type="email" id="email-destino" placeholder="empleado@correo.com">
+            </div>
+        </div>
+        <div id="admin-doc-info" style="display: none;" class="badge-info"></div>
+    </div>
+
+    <!-- 2. Datos del Jefe Inmediato y Evaluación -->
+    <div class="section-box">
+        <h2>2. Datos del Jefe Inmediato y Contrato (Hoja 4)</h2>
+        <div class="grid-3">
+            <div class="form-group">
+                <label for="admin-jefe-nombre">Nombre del Jefe Inmediato:</label>
+                <input type="text" id="admin-jefe-nombre" placeholder="Nombre completo del jefe">
+            </div>
+            <div class="form-group">
+                <label for="admin-jefe-cedula">Cédula Jefe Inmediato:</label>
+                <input type="text" id="admin-jefe-cedula" placeholder="Número de cédula">
+            </div>
+            <div class="form-group">
+                <label for="admin-jefe-cargo">Cargo Jefe Inmediato:</label>
+                <input type="text" id="admin-jefe-cargo" placeholder="Cargo del jefe">
+            </div>
+        </div>
+        <div class="grid-3">
+            <div class="form-group">
+                <label for="admin-tipo-contrato">Tipo de Contrato:</label>
+                <input type="text" id="admin-tipo-contrato" value="Obra o Labor">
+            </div>
+            <div class="form-group">
+                <label for="admin-fecha-inicio-prueba">Fecha Inicio de Prueba:</label>
+                <input type="date" id="admin-fecha-inicio-prueba">
+            </div>
+            <div class="form-group">
+                <label for="admin-periodo-prueba">Tipo de Evaluación:</label>
+                <input type="text" id="admin-periodo-prueba" value="Período de Prueba">
+            </div>
+        </div>
+        <div class="grid-3" style="margin-top: 5px;">
+            <div class="form-group">
+                <label for="admin-fecha-fin-prueba">Fecha Fin Período Prueba (Opcional):</label>
+                <input type="date" id="admin-fecha-fin-prueba">
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Datos y Firma del Evaluador -->
+    <div class="section-box">
+        <h2>3. Datos y Firma del Evaluador (Hoja 5)</h2>
+        <div class="grid-2">
+            <div class="form-group">
+                <label for="admin-evaluador-nombre">Nombre del Evaluador:</label>
+                <input type="text" id="admin-evaluador-nombre" placeholder="Nombre completo del evaluador">
+            </div>
+            <div class="form-group">
+                <label for="admin-evaluador-cargo">Cargo del Evaluador:</label>
+                <input type="text" id="admin-evaluador-cargo" placeholder="Cargo del evaluador">
+            </div>
+        </div>
+
+        <div class="sig-wrapper">
+            <label style="font-weight: 600; margin-bottom: 8px;">Dibuja aquí la Firma del Evaluador:</label>
+            <canvas id="admin-signature-pad" class="signature-canvas"></canvas>
+            <div style="margin-top: 8px;">
+                <button type="button" class="btn-danger" id="clear-admin-signature">Limpiar Firma Evaluador</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Campos Opcionales Escondidos / Desplegables -->
+    <details class="optional-details">
+        <summary>
+            <span>⚙️ Campos Opcionales (Fortalezas, Recomendaciones, Compromisos 1-5, Observaciones)</span>
+            <span style="font-size: 13px; font-weight: normal; color: #555;">[Clic para desplegar / ocultar]</span>
+        </summary>
+        <div class="optional-body">
+            <div class="form-group">
+                <label for="admin-fortalezas">Fortalezas:</label>
+                <textarea id="admin-fortalezas" rows="3" placeholder="Aspectos positivos y fortalezas destacadas del evaluado..."></textarea>
+            </div>
+            <div class="form-group">
+                <label for="admin-recomendaciones">Recomendaciones:</label>
+                <textarea id="admin-recomendaciones" rows="3" placeholder="Recomendaciones y áreas de mejora sugeridas..."></textarea>
+            </div>
+
+            <label style="font-weight: 600; margin-top: 15px; display: block;">Compromisos Laborales (1 al 5):</label>
+            <div style="overflow-x: auto;">
+                <table class="compromisos-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 5%;">#</th>
+                            <th style="width: 45%;">Compromiso Laboral</th>
+                            <th style="width: 25%;">Resultado Esperado</th>
+                            <th style="width: 25%;">Seguimiento</th>
+                        </tr>
+                    </thead>
+                    <tbody id="compromisos-tbody">
+                        <!-- Generado dinámicamente del 1 al 5 -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="form-group" style="margin-top: 15px;">
+                <label for="admin-observaciones">Observaciones (Vicerrectoría de Capital Social):</label>
+                <textarea id="admin-observaciones" rows="3" placeholder="Observaciones generales institucionales..."></textarea>
+            </div>
+        </div>
+    </details>
+
+    <div class="buttons" style="margin-top: 25px;">
+        <button class="btn-success btn-action-main" id="btn-enviar-correo">Subir y Enviar por Correo al Empleado</button>
+        <button type="button" class="btn-secondary" id="btn-descargar-admin" style="margin-top: 10px;">💾 Descargar Copia Preparada (Prueba Local)</button>
+    </div>
+    
+    <div id="admin-status"></div>
+</div>
+
+
+<!-- ========================================================================= -->
+<!-- VISTA DEL FIRMANTE / EMPLEADO (La persona que recibe el archivo)          -->
+<!-- ========================================================================= -->
+<div class="container" id="signer-view" style="display: none;">
+    <h1>Firma de Documento</h1>
+    <p class="subtitle">Por favor, revisa el documento, completa tus datos personales y dibuja tu firma para estampar en las hojas 1, 2, 3 y 5.</p>
+    
+    <div id="signer-status"></div>
+
+    <div class="canvas-container" id="pdf-container" style="display: none;">
+        <canvas id="pdf-render"></canvas>
+    </div>
+    
+    <div style="text-align: center; margin-bottom: 20px; display: none;" id="page-info">
+        <button id="prev-page" class="btn-primary">Anterior</button>
+        <span style="margin: 0 15px; font-weight: bold; font-size: 16px;">Página <span id="page-num"></span> de <span id="page-count"></span></span>
+        <button id="next-page" class="btn-primary">Siguiente</button>
+    </div>
+
+    <div class="section-box" id="signature-section" style="display: none; flex-direction: column; align-items: center;">
+        <h2 style="width: 100%; text-align: center; margin-top: 0;">Tus Datos de Recibido y Firma</h2>
+        <div class="grid-2" style="width: 100%; max-width: 650px; margin-bottom: 20px;">
+            <div class="form-group">
+                <label for="nombre">Nombre Completo de quien Recibe:</label>
+                <input type="text" id="nombre" required placeholder="Tu nombre completo">
+            </div>
+            <div class="form-group">
+                <label for="cedula">Cédula de quien Recibe (Hojas 1, 2 y 3):</label>
+                <input type="text" id="cedula" required placeholder="Número de cédula">
+            </div>
+            <div class="form-group">
+                <label for="cargo">Cargo de quien Recibe (Hoja 5):</label>
+                <input type="text" id="cargo" required placeholder="Tu cargo actual">
+            </div>
+            <div class="form-group">
+                <label for="fecha">Fecha de Recibido:</label>
+                <input type="date" id="fecha" required>
+            </div>
+        </div>
+
+        <div class="sig-wrapper">
+            <label style="font-weight: 600; margin-bottom: 8px;">Dibuja tu firma (se estampará en las Hojas 1, 2, 3 y 5):</label>
+            <canvas id="signature-pad" class="signature-canvas"></canvas>
+            <div class="buttons">
+                <button class="btn-danger" id="clear-signature">Limpiar Firma</button>
+            </div>
+        </div>
+
+        <div style="width: 100%; margin-top: 25px;">
+            <button class="btn-success btn-action-main" id="apply-signature">Firmar y Enviar a la Empresa</button>
+            <div style="text-align: center; margin-top: 10px;">
+                <button type="button" class="btn-secondary" id="btn-descargar-firmante">💾 Descargar Copia Firmada (Prueba Local)</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- URL DE GOOGLE APPS SCRIPT ---
+    const GOOGLE_APP_URL = "https://script.google.com/macros/s/AKfycbzYnoNpWJE6nkVIjAC2469JoBuRkI4DIn-TszbHbl4mydIUMraN7zuxGFaCCYyyn_Aq0Q/exec";
+    
+    // Variables globales
+    let pdfDoc = null;
+    let pageNum = 1;
+    let canvas = document.getElementById('pdf-render');
+    let ctx = canvas.getContext('2d');
+    let pdfBytes = null; 
+    let fileName = "Documento.pdf";
+    let docId = null;
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+    // Generar filas para Compromisos 1 al 5
+    const compTbody = document.getElementById('compromisos-tbody');
+    for (let i = 1; i <= 5; i++) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td style="text-align: center; font-weight: bold; color: #1e5ba3;">${i}</td>
+            <td><input type="text" id="admin-comp-desc-${i}" placeholder="Descripción del compromiso ${i}"></td>
+            <td><input type="text" id="admin-comp-res-${i}" placeholder="Resultado esperado ${i}"></td>
+            <td><input type="text" id="admin-comp-seg-${i}" placeholder="Seguimiento ${i}"></td>
+        `;
+        compTbody.appendChild(tr);
+    }
+
+    // Inicializar Pads de Firma
+    let signaturePad = null;
+    let adminSignaturePad = null;
+
+    const signerPadCanvas = document.getElementById('signature-pad');
+    if (signerPadCanvas) {
+        signaturePad = new SignaturePad(signerPadCanvas);
+    }
+
+    const adminPadCanvas = document.getElementById('admin-signature-pad');
+    if (adminPadCanvas) {
+        adminSignaturePad = new SignaturePad(adminPadCanvas);
+    }
+
+    // Fecha actual por defecto
+    const todayStr = new Date().toISOString().split('T')[0];
+    document.getElementById('fecha').value = todayStr;
+    document.getElementById('admin-fecha-inicio-prueba').value = todayStr;
+
+    // Determinar qué vista mostrar (Admin vs Signer)
+    const urlParams = new URLSearchParams(window.location.search);
+    docId = urlParams.get('docId');
+
+    if (docId) {
+        // MODO FIRMANTE (Empleado que recibe)
+        document.getElementById('signer-view').style.display = 'block';
+        fileName = urlParams.get('fileName') || "Documento_Firmado.pdf";
+        descargarYMostrarPDF(docId);
+    } else {
+        // MODO ADMINISTRADOR (Persona que envía)
+        document.getElementById('admin-view').style.display = 'block';
+        setTimeout(adjustAdminCanvas, 100);
+    }
+
+    function adjustAdminCanvas() {
+        if (!adminPadCanvas || !adminSignaturePad) return;
+        const ratio = Math.max(window.devicePixelRatio || 1, 1);
+        adminPadCanvas.width = adminPadCanvas.offsetWidth * ratio || 520;
+        adminPadCanvas.height = adminPadCanvas.offsetHeight * ratio || 180;
+        adminPadCanvas.getContext("2d").scale(ratio, ratio);
+        adminSignaturePad.clear();
+    }
+
+    document.getElementById('clear-admin-signature').addEventListener('click', () => {
+        if (adminSignaturePad) adminSignaturePad.clear();
+    });
+
+    document.getElementById('clear-signature').addEventListener('click', () => {
+        if (signaturePad) signaturePad.clear();
+    });
+
+    // Helper para asignar campos en pdf-lib
+    function setFieldSafe(form, fieldName, value) {
+        try {
+            const field = form.getField(fieldName);
+            if (field && typeof field.setText === 'function') {
+                field.setText(value != null ? String(value) : '');
+            }
+        } catch (e) {}
+    }
+
+    // Helper para limpiar textos dummies de placeholders
+    function cleanDummyText(form, fieldName, dummyKeywords) {
+        try {
+            const field = form.getField(fieldName);
+            if (field && typeof field.getText === 'function') {
+                const val = (field.getText() || '').trim().toLowerCase();
+                if (dummyKeywords.some(w => val === w || val.startsWith(w))) {
+                    field.setText('');
+                }
+            }
+        } catch(e) {}
+    }
+
+    // Helper para ubicar widget y página
+    function getWidgetTarget(form, pages, fieldName, fallbackPageIdx = 0) {
+        try {
+            const field = form.getField(fieldName);
+            if (field) {
+                const widgets = field.acroField.getWidgets();
+                if (widgets && widgets.length > 0) {
+                    const widget = widgets[0];
+                    const rect = widget.getRectangle();
+                    let widgetPage = null;
+                    try {
+                        const pageRef = widget.P();
+                        if (pageRef) {
+                            for (let i = 0; i < pages.length; i++) {
+                                if (pages[i].ref.toString() === pageRef.toString()) {
+                                    widgetPage = pages[i];
+                                    break;
+                                }
+                            }
+                        }
+                    } catch (errP) {}
+                    if (!widgetPage) {
+                        const pMatch = fieldName.match(/_p(\d+)$/i);
+                        if (pMatch) {
+                            const pIdx = parseInt(pMatch[1], 10) - 1;
+                            if (pIdx >= 0 && pIdx < pages.length) {
+                                widgetPage = pages[pIdx];
+                            }
+                        }
+                    }
+                    if (!widgetPage && fallbackPageIdx >= 0 && fallbackPageIdx < pages.length) {
+                        widgetPage = pages[fallbackPageIdx];
+                    }
+                    return {
+                        page: widgetPage,
+                        x: rect.x,
+                        y: rect.y,
+                        width: rect.width || 140,
+                        height: rect.height || 40
+                    };
+                }
+            }
+        } catch (e) {}
+        return null;
+    }
+
+    // Helper para descargar archivos localmente
+    function downloadBlob(blob, name) {
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+    }
+
+    // ==========================================
+    // LÓGICA DEL ADMINISTRADOR (PREPARACIÓN)
+    // ==========================================
+    document.getElementById('pdf-upload').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const infoDiv = document.getElementById('admin-doc-info');
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const loadedDoc = await PDFLib.PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+            const form = loadedDoc.getForm();
+            
+            let empName = "";
+            let empCedula = "";
+            let empCargo = "";
+
+            try { empName = form.getTextField('Eval_Nombre_Evaluado_p4').getText() || form.getTextField('Nombre_Evaluado_p5').getText(); } catch(e){}
+            try { empCedula = form.getTextField('Eval_Cedula_Evaluado_p4').getText(); } catch(e){}
+            try { empCargo = form.getTextField('Eval_Cargo_Evaluado_p4').getText() || form.getTextField('Cargo_Evaluado_p5').getText(); } catch(e){}
+
+            const isDummy = (str) => !str || str.toLowerCase().includes('evaluado') || str.toLowerCase().includes('cargo');
+
+            if (empName || empCedula) {
+                infoDiv.innerHTML = `
+                    <strong>📄 Documento Cargado:</strong> ${file.name} (${loadedDoc.getPageCount()} páginas)<br>
+                    <strong>Empleado:</strong> ${isDummy(empName) ? 'Por definir' : empName} | 
+                    <strong>Cédula:</strong> ${empCedula || 'Por definir'} | 
+                    <strong>Cargo:</strong> ${isDummy(empCargo) ? 'Por definir' : empCargo}
+                `;
+                infoDiv.style.display = 'block';
+            }
+
+            // Pre-llenar datos del Jefe o Contrato si ya existían reales
+            try {
+                const jNom = form.getTextField('Eval_Jefe_Inmediato_p4').getText();
+                if (jNom && !jNom.toLowerCase().includes('jefe')) document.getElementById('admin-jefe-nombre').value = jNom;
+            } catch(e){}
+            try {
+                const jCed = form.getTextField('Eval_DNI_Jefe_p4').getText();
+                if (jCed && !jCed.toLowerCase().includes('jefe') && !jCed.toLowerCase().includes('cedula')) document.getElementById('admin-jefe-cedula').value = jCed;
+            } catch(e){}
+            try {
+                const jCar = form.getTextField('Eval_Cargo_Jefe_p4').getText();
+                if (jCar && !jCar.toLowerCase().includes('jefe') && !jCar.toLowerCase().includes('cargo')) document.getElementById('admin-jefe-cargo').value = jCar;
+            } catch(e){}
+            try {
+                const eNom = form.getTextField('Nombre_Evaluador_p5').getText();
+                if (eNom && !eNom.toLowerCase().includes('evaluador') && !eNom.toLowerCase().includes('evalador')) document.getElementById('admin-evaluador-nombre').value = eNom;
+            } catch(e){}
+            try {
+                const eCar = form.getTextField('Cargo_Evaluador_p5').getText();
+                if (eCar && !eCar.toLowerCase().includes('evaluador') && !eCar.toLowerCase().includes('cargo')) document.getElementById('admin-evaluador-cargo').value = eCar;
+            } catch(e){}
+        } catch(err) {
+            infoDiv.innerHTML = `<strong>📄 Archivo seleccionado:</strong> ${file.name}`;
+            infoDiv.style.display = 'block';
+        }
+    });
+
+    // Función que procesa e inyecta los datos del evaluador/jefe en el PDF
+    async function prepararPDFPorAdmin(file) {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdfDocLib = await PDFLib.PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+        const form = pdfDocLib.getForm();
+        const pages = pdfDocLib.getPages();
+
+        // 1. Datos del Jefe Inmediato
+        const jefeNombre = document.getElementById('admin-jefe-nombre').value.trim();
+        const jefeCedula = document.getElementById('admin-jefe-cedula').value.trim();
+        const jefeCargo = document.getElementById('admin-jefe-cargo').value.trim();
+        setFieldSafe(form, 'Eval_Jefe_Inmediato_p4', jefeNombre);
+        setFieldSafe(form, 'Eval_DNI_Jefe_p4', jefeCedula);
+        setFieldSafe(form, 'Eval_Cargo_Jefe_p4', jefeCargo);
+
+        // 2. Datos de Contrato y Período de Prueba
+        const tipoContrato = document.getElementById('admin-tipo-contrato').value.trim();
+        let fechaInicioPrueba = document.getElementById('admin-fecha-inicio-prueba').value;
+        if (fechaInicioPrueba && fechaInicioPrueba.includes('-')) {
+            const p = fechaInicioPrueba.split('-');
+            if (p.length === 3) fechaInicioPrueba = `${p[2]}/${p[1]}/${p[0]}`;
+        }
+        let fechaFinPrueba = document.getElementById('admin-fecha-fin-prueba').value;
+        if (fechaFinPrueba && fechaFinPrueba.includes('-')) {
+            const p = fechaFinPrueba.split('-');
+            if (p.length === 3) fechaFinPrueba = `${p[2]}/${p[1]}/${p[0]}`;
+        }
+        const periodoPrueba = document.getElementById('admin-periodo-prueba').value.trim();
+
+        setFieldSafe(form, 'Eval_Tipo_Contrato_p4', tipoContrato);
+        setFieldSafe(form, 'Eval_Fecha_Inicio_Prueba_p4', fechaInicioPrueba);
+        setFieldSafe(form, 'Eval_Fecha_Fin_Prueba_p4', fechaFinPrueba);
+        setFieldSafe(form, 'Eval_Tipo_Evaluacion_p4', periodoPrueba);
+
+        // 3. Datos del Evaluador
+        const evaluadorNombre = document.getElementById('admin-evaluador-nombre').value.trim();
+        const evaluadorCargo = document.getElementById('admin-evaluador-cargo').value.trim();
+        setFieldSafe(form, 'Nombre_Evaluador_p5', evaluadorNombre);
+        setFieldSafe(form, 'Cargo_Evaluador_p5', evaluadorCargo);
+
+        // 4. Campos Opcionales (Fortalezas, Recomendaciones, Compromisos, Observaciones)
+        const fortalezas = document.getElementById('admin-fortalezas').value.trim();
+        const recomendaciones = document.getElementById('admin-recomendaciones').value.trim();
+        const observaciones = document.getElementById('admin-observaciones').value.trim();
+        setFieldSafe(form, 'Fortalezas_p5', fortalezas);
+        setFieldSafe(form, 'Recomendaciones_p5', recomendaciones);
+        setFieldSafe(form, 'Observaciones_Capital_Social_p5', observaciones);
+
+        for (let i = 1; i <= 5; i++) {
+            const desc = (document.getElementById(`admin-comp-desc-${i}`)?.value || '').trim();
+            const res = (document.getElementById(`admin-comp-res-${i}`)?.value || '').trim();
+            const seg = (document.getElementById(`admin-comp-seg-${i}`)?.value || '').trim();
+            setFieldSafe(form, `Compromiso_${i}_Desc_p5`, desc);
+            setFieldSafe(form, `Compromiso_${i}_Resultado_p5`, res);
+            setFieldSafe(form, `Compromiso_${i}_Seguimiento_p5`, seg);
+        }
+
+        // 5. Limpieza de placeholders antiguos de firma/cédula/cargo para el que recibe
+        cleanDummyText(form, 'Firma_Digital_Recibi_p1', ['firma']);
+        cleanDummyText(form, 'Firma_Digital_Recibi_p2', ['firma']);
+        cleanDummyText(form, 'Firma_Digital_Recibi_p3', ['firma']);
+        cleanDummyText(form, 'Firma_Evaluado_p5', ['firma']);
+        cleanDummyText(form, 'Cedula_Recibi_p1', ['cedula', 'cédula']);
+        cleanDummyText(form, 'Cedula_Recibi_p2', ['cedula', 'cédula']);
+        cleanDummyText(form, 'Cedula_Recibi_p3', ['cedula', 'cédula']);
+        cleanDummyText(form, 'Cargo_Evaluado_p5', ['cargo']);
+
+        // 6. Firma del Evaluador (si se dibujó en el canvas)
+        if (adminSignaturePad && !adminSignaturePad.isEmpty()) {
+            const evalSigDataUrl = adminSignaturePad.toDataURL('image/png');
+            const evalSigImage = await pdfDocLib.embedPng(evalSigDataUrl);
+            const target = getWidgetTarget(form, pages, 'Firma_Evaluador_p5', pages.length - 1);
+            
+            // Limpiar texto en casilla de firma
+            setFieldSafe(form, 'Firma_Evaluador_p5', '');
+
+            if (target) {
+                target.page.drawImage(evalSigImage, {
+                    x: target.x,
+                    y: target.y,
+                    width: target.width,
+                    height: target.height
+                });
+            } else {
+                // Posición de respaldo en hoja 5
+                const p5 = pages[pages.length - 1];
+                const { height: h5 } = p5.getSize();
+                p5.drawImage(evalSigImage, { x: 125, y: h5 - 460, width: 220, height: 35 });
+            }
+        }
+
+        // Guardamos SIN aplanar para que los campos del empleado continúen interactivos
+        return await pdfDocLib.save();
+    }
+
+    // Botón: Subir y Enviar por Correo
+    document.getElementById('btn-enviar-correo').addEventListener('click', async () => {
+        const fileInput = document.getElementById('pdf-upload');
+        const emailInput = document.getElementById('email-destino').value.trim();
+        const statusDiv = document.getElementById('admin-status');
+
+        if (!fileInput.files[0] || !emailInput) {
+            alert("Por favor selecciona un PDF e ingresa el correo del empleado."); 
+            return;
+        }
+
+        statusDiv.className = 'status-loading'; 
+        statusDiv.style.display = 'block';
+        statusDiv.textContent = "Preparando documento con datos del evaluador y subiendo...";
+
+        try {
+            const file = fileInput.files[0];
+            const preparedBytes = await prepararPDFPorAdmin(file);
+
+            let binary = '';
+            for (let i = 0; i < preparedBytes.byteLength; i++) { binary += String.fromCharCode(preparedBytes[i]); }
+            const base64PDF = window.btoa(binary);
+
+            const currentUrl = window.location.href.split('?')[0];
+
+            statusDiv.textContent = "Subiendo archivo a Google Drive y enviando correo al empleado...";
+
+            const response = await fetch(GOOGLE_APP_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: "enviar_correo",
+                    emailDestino: emailInput,
+                    pdfBase64: base64PDF,
+                    fileName: file.name,
+                    pageUrl: currentUrl
+                }),
+                headers: { "Content-Type": "text/plain;charset=utf-8" }
+            });
+
+            const data = await response.json();
+            if (data.status === 'success') {
+                statusDiv.className = 'status-success';
+                statusDiv.textContent = "¡Correo enviado exitosamente al empleado con todos los campos del evaluador configurados!";
+                fileInput.value = "";
+                document.getElementById('email-destino').value = "";
+                if (adminSignaturePad) adminSignaturePad.clear();
+            } else {
+                statusDiv.className = 'status-error';
+                statusDiv.textContent = "Error al enviar: " + (data.message || "Desconocido");
+            }
+        } catch (err) {
+            statusDiv.className = 'status-error';
+            statusDiv.textContent = "Error al procesar el PDF o fallo de conexión: " + err.message;
+        }
+    });
+
+    // Botón: Descargar Copia Preparada Localmente
+    document.getElementById('btn-descargar-admin').addEventListener('click', async () => {
+        const fileInput = document.getElementById('pdf-upload');
+        if (!fileInput.files[0]) { alert("Selecciona un archivo PDF primero."); return; }
+        try {
+            const file = fileInput.files[0];
+            const preparedBytes = await prepararPDFPorAdmin(file);
+            const blob = new Blob([preparedBytes], { type: 'application/pdf' });
+            downloadBlob(blob, `PREPARADO_${file.name}`);
+        } catch(e) {
+            alert("Error al generar copia local: " + e.message);
+        }
+    });
+
+
+    // ==========================================
+    // LÓGICA DEL FIRMANTE / EMPLEADO
+    // ==========================================
+    function descargarYMostrarPDF(id) {
+        const statusDiv = document.getElementById('signer-status');
+        statusDiv.className = 'status-loading'; 
+        statusDiv.style.display = 'block';
+        statusDiv.textContent = "Descargando documento seguro para firma...";
+
+        fetch(GOOGLE_APP_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: "obtener_pdf", docId: id }),
+            headers: { "Content-Type": "text/plain;charset=utf-8" }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === 'success' && data.base64) {
+                statusDiv.style.display = 'none';
+                const binaryString = window.atob(data.base64);
+                pdfBytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) {
+                    pdfBytes[i] = binaryString.charCodeAt(i);
+                }
+                mostrarPDFEnPantalla(pdfBytes);
+                preCargarDatosFirmante(pdfBytes);
+            } else {
+                statusDiv.className = 'status-error';
+                statusDiv.textContent = "Error al descargar el PDF. Verifica el enlace.";
+            }
+        })
+        .catch(err => {
+            statusDiv.className = 'status-error';
+            statusDiv.textContent = "Error de red al descargar el documento.";
+        });
+    }
+
+    async function preCargarDatosFirmante(bytes) {
+        try {
+            const docLib = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true });
+            const form = docLib.getForm();
+            
+            let n = "";
+            let c = "";
+            let crg = "";
+
+            try { n = form.getTextField('Nombre_Evaluado_p5').getText() || form.getTextField('Eval_Nombre_Evaluado_p4').getText(); } catch(e){}
+            try { c = form.getTextField('Eval_Cedula_Evaluado_p4').getText() || form.getTextField('Cedula_Recibi_p1').getText(); } catch(e){}
+            try { crg = form.getTextField('Cargo_Evaluado_p5').getText() || form.getTextField('Eval_Cargo_Evaluado_p4').getText(); } catch(e){}
+
+            const isDummy = (str) => !str || str.toLowerCase().includes('cargo') || str.toLowerCase().includes('cedula') || str.toLowerCase().includes('nombre') || str.toLowerCase().includes('evaluado');
+
+            if (n && !isDummy(n)) document.getElementById('nombre').value = n;
+            if (c && !isDummy(c)) document.getElementById('cedula').value = c;
+            if (crg && !isDummy(crg)) document.getElementById('cargo').value = crg;
+        } catch(e) {}
+    }
+
+    function mostrarPDFEnPantalla(bytes) {
+        pdfjsLib.getDocument(bytes).promise.then(pdf => {
+            pdfDoc = pdf;
+            document.getElementById('page-count').textContent = pdf.numPages;
+            pageNum = 1;
+            renderPage(pageNum);
+            document.getElementById('pdf-container').style.display = 'flex';
+            document.getElementById('signature-section').style.display = 'flex';
+            document.getElementById('page-info').style.display = 'block';
+            
+            setTimeout(() => {
+                if (signerPadCanvas && signaturePad) {
+                    const ratio = Math.max(window.devicePixelRatio || 1, 1);
+                    signerPadCanvas.width = signerPadCanvas.offsetWidth * ratio || 520;
+                    signerPadCanvas.height = signerPadCanvas.offsetHeight * ratio || 180;
+                    signerPadCanvas.getContext("2d").scale(ratio, ratio);
+                    signaturePad.clear();
+                }
+            }, 100);
+        });
+    }
+
+    function renderPage(num) {
+        pdfDoc.getPage(num).then(page => {
+            const viewport = page.getViewport({ scale: 1.8 });
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            page.render({ canvasContext: ctx, viewport: viewport });
+        });
+        document.getElementById('page-num').textContent = num;
+        document.getElementById('prev-page').disabled = num <= 1;
+        document.getElementById('next-page').disabled = num >= pdfDoc.numPages;
+    }
+    
+    document.getElementById('prev-page').addEventListener('click', () => { if(pageNum > 1){ pageNum--; renderPage(pageNum); } });
+    document.getElementById('next-page').addEventListener('click', () => { if(pageNum < pdfDoc.numPages){ pageNum++; renderPage(pageNum); } });
+
+    // Función que procesa la firma del empleado en las Hojas 1, 2, 3 y 5
+    async function firmarDocumentoEmpleado() {
+        const nombre = document.getElementById('nombre').value.trim();
+        const cedula = document.getElementById('cedula').value.trim();
+        const cargo = document.getElementById('cargo').value.trim();
+        const fecha = document.getElementById('fecha').value.trim();
+
+        if (!nombre || !cedula || !cargo || !fecha) {
+            alert('Por favor completa todos tus datos: Nombre, Cédula, Cargo y Fecha.');
+            return null;
+        }
+        if (!signaturePad || signaturePad.isEmpty()) {
+            alert('Por favor dibuja tu firma en el recuadro.');
+            return null;
+        }
+
+        const pdfDocLib = await PDFLib.PDFDocument.load(pdfBytes, { ignoreEncryption: true });
+        const signatureImageBytes = signaturePad.toDataURL('image/png');
+        const signatureImage = await pdfDocLib.embedPng(signatureImageBytes);
+        const pages = pdfDocLib.getPages();
+
+        let fechaDisplay = fecha;
+        if (fecha && fecha.includes('-')) {
+            const parts = fecha.split('-');
+            if (parts.length === 3) fechaDisplay = `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+
+        const targetsToSign = [];
+        let firmaColocada = false;
+
+        try {
+            const form = pdfDocLib.getForm();
+            const fields = form.getFields();
+
+            fields.forEach(field => {
+                const rawName = field.getName();
+                const name = rawName.toLowerCase();
+
+                const isEvaluador = name.includes('evaluador');
+                const isJefe = name.includes('jefe');
+                const isCapital = name.includes('capital');
+
+                // 1. Text Fields del Destinatario (Persona que recibe)
+                if (typeof field.setText === 'function') {
+                    if (!isEvaluador && !isJefe && !isCapital) {
+                        // Cédula en Hojas 1, 2, 3 y Hoja 4
+                        if (name.includes('cedula') || name.includes('cédula') || name.includes('documento') || name.includes('dni')) {
+                            field.setText(cedula);
+                        }
+                        // Cargo en Hoja 4 y Hoja 5
+                        else if (name.includes('cargo')) {
+                            field.setText(cargo);
+                        }
+                        // Nombre en Hoja 4 y Hoja 5
+                        else if (name.includes('nombre') || name.includes('evaluado')) {
+                            if (!name.includes('firma')) {
+                                field.setText(nombre);
+                            }
+                        }
+                        // Fecha en Hojas 1, 2, 3
+                        else if (name.includes('fecha') || name.includes('date')) {
+                            field.setText(fechaDisplay);
+                        }
+                    }
+                }
+
+                // 2. Signature Fields del Destinatario (Persona que recibe)
+                // Hojas 1, 2, 3: Firma_Digital_Recibi_p1, p2, p3
+                // Hoja 5: Firma_Evaluado_p5
+                const isRecipientSig = (
+                    name.includes('recibi') || 
+                    name.includes('recibí') || 
+                    (name.includes('evaluado') && !isEvaluador && name.includes('firma')) ||
+                    (name.includes('firma_digital') && !isEvaluador && !isCapital)
+                );
+
+                if (isRecipientSig) {
+                    try {
+                        if (typeof field.setText === 'function') {
+                            field.setText(''); // Limpiar texto como 'firma'
+                        }
+                        const widgets = field.acroField.getWidgets();
+                        if (widgets && widgets.length > 0) {
+                            const widget = widgets[0];
+                            const rect = widget.getRectangle();
+                            
+                            let widgetPage = null;
+                            try {
+                                const pageRef = widget.P();
+                                if (pageRef) {
+                                    for (let i = 0; i < pages.length; i++) {
+                                        if (pages[i].ref.toString() === pageRef.toString()) {
+                                            widgetPage = pages[i];
+                                            break;
+                                        }
+                                    }
+                                }
+                            } catch (errP) {}
+
+                            if (!widgetPage) {
+                                const pMatch = rawName.match(/_p(\d+)$/i);
+                                if (pMatch) {
+                                    const pIdx = parseInt(pMatch[1], 10) - 1;
+                                    if (pIdx >= 0 && pIdx < pages.length) {
+                                        widgetPage = pages[pIdx];
+                                    }
+                                }
+                            }
+
+                            if (!widgetPage) {
+                                widgetPage = pages[0];
+                            }
+
+                            targetsToSign.push({
+                                page: widgetPage,
+                                x: rect.x,
+                                y: rect.y,
+                                width: rect.width || 140,
+                                height: rect.height || 40,
+                                fieldName: rawName
+                            });
+                            firmaColocada = true;
+                        }
+                    } catch(e) {}
+                }
+            });
+
+            // Aplanar formulario para sellar permanentemente
+            form.flatten();
+
+            // Estampar la firma del empleado en las casillas recolectadas (Hojas 1, 2, 3 y 5)
+            if (firmaColocada && targetsToSign.length > 0) {
+                targetsToSign.forEach(target => {
+                    target.page.drawImage(signatureImage, {
+                        x: target.x,
+                        y: target.y,
+                        width: target.width,
+                        height: target.height
+                    });
+                });
+            } else {
+                pages[0].drawImage(signatureImage, { x: 50, y: 50, width: 200, height: 80 });
+            }
+        } catch (formErr) {
+            console.log("Aviso al procesar formulario:", formErr);
+        }
+
+        return await pdfDocLib.save();
+    }
+
+    // Botón: Firmar y Enviar a la Empresa
+    document.getElementById('apply-signature').addEventListener('click', async () => {
+        const statusDiv = document.getElementById('signer-status');
+        statusDiv.className = 'status-loading'; 
+        statusDiv.style.display = 'block';
+        statusDiv.textContent = "Sellando documento con tu firma en las hojas 1, 2, 3 y 5...";
+
+        try {
+            const pdfBytesModified = await firmarDocumentoEmpleado();
+            if (!pdfBytesModified) {
+                statusDiv.style.display = 'none';
+                return;
+            }
+
+            let binary = '';
+            for (let i = 0; i < pdfBytesModified.byteLength; i++) { binary += String.fromCharCode(pdfBytesModified[i]); }
+            const base64PDF = window.btoa(binary);
+
+            statusDiv.textContent = "Enviando documento firmado a la empresa...";
+
+            fetch(GOOGLE_APP_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: "guardar_firma",
+                    pdfBase64: base64PDF,
+                    fileName: fileName,
+                    docId: docId
+                }),
+                headers: { "Content-Type": "text/plain;charset=utf-8" }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === 'success') {
+                    statusDiv.className = 'status-success';
+                    statusDiv.innerHTML = "🎉 <strong>¡Gracias!</strong> Tu documento ha sido firmado exitosamente en las hojas 1, 2, 3 y 5, y ha sido guardado en la empresa.";
+                    document.getElementById('pdf-container').style.display = 'none';
+                    document.getElementById('signature-section').style.display = 'none';
+                    document.getElementById('page-info').style.display = 'none';
+                } else {
+                    statusDiv.className = 'status-error';
+                    statusDiv.textContent = "Error al guardar el PDF en el servidor.";
+                }
+            })
+            .catch(err => {
+                statusDiv.className = 'status-error';
+                statusDiv.textContent = "Error de red al enviar el documento firmado.";
+            });
+        } catch (error) {
+            statusDiv.className = 'status-error';
+            statusDiv.textContent = 'Error al generar el PDF: ' + error.message;
+        }
+    });
+
+    // Botón: Descargar Copia Firmada Localmente
+    document.getElementById('btn-descargar-firmante').addEventListener('click', async () => {
+        try {
+            const pdfBytesModified = await firmarDocumentoEmpleado();
+            if (!pdfBytesModified) return;
+            const blob = new Blob([pdfBytesModified], { type: 'application/pdf' });
+            downloadBlob(blob, `FIRMADO_${fileName}`);
+        } catch(e) {
+            alert("Error al generar copia local: " + e.message);
+        }
+    });
+</script>
+
+</body>
+</html>
