@@ -455,7 +455,7 @@
 
     <div class="section-box" id="signature-section" style="display: none; flex-direction: column; align-items: center;">
         <h2 style="width: 100%; text-align: center; margin-top: 0;">Tus Datos de Recibido y Firma</h2>
-        <div class="grid-2" style="width: 100%; max-width: 650px; margin-bottom: 20px;">
+        <div class="grid-2" style="width: 100%; max-width: 650px; margin-bottom: 10px;">
             <div class="form-group">
                 <label for="nombre">Nombre Completo de quien Recibe:</label>
                 <input type="text" id="nombre" required placeholder="Tu nombre completo">
@@ -474,8 +474,13 @@
             </div>
         </div>
 
+        <div class="form-group" style="width: 100%; max-width: 650px; margin-bottom: 20px;">
+            <label for="comentarios">Comentarios del Evaluado (Opcional):</label>
+            <textarea id="comentarios" rows="2" placeholder="Tus observaciones o comentarios respecto a la evaluación..."></textarea>
+        </div>
+
         <div class="sig-wrapper">
-            <label style="font-weight: 600; margin-bottom: 8px;">Dibuja tu firma (se estampará en las casillas de Recibí y Evaluado):</label>
+            <label style="font-weight: 600; margin-bottom: 8px;">Dibuja tu firma (se estampará en las casillas de Recibí, Evaluado y Recibido por Capital Social):</label>
             <canvas id="signature-pad" class="signature-canvas"></canvas>
             <div class="buttons">
                 <button class="btn-danger" id="clear-signature">Limpiar Firma</button>
@@ -783,6 +788,7 @@
         cleanDummyText(form, 'Cargo_Evaluado_p5', ['cargo quien recibe']);
         cleanDummyText(form, 'Cargo_Capital_Social_p5', ['cargo quien recibe']);
         cleanDummyText(form, 'Eval_Cargo_Evaluado_p4', ['cargo quien recibe']);
+        cleanDummyText(form, 'Comentarios_Evaluado_p5', ['comentarios']);
 
         // 6. Firma del Evaluador (si se dibujó en el canvas del administrador)
         if (adminSignaturePad && !adminSignaturePad.isEmpty()) {
@@ -983,6 +989,7 @@
         const cedula = document.getElementById('cedula').value.trim();
         const cargo = document.getElementById('cargo').value.trim();
         const fecha = document.getElementById('fecha').value.trim();
+        const comentarios = (document.getElementById('comentarios')?.value || '').trim();
 
         if (!nombre || !cedula || !cargo || !fecha) {
             alert('Por favor completa todos tus datos: Nombre, Cédula, Cargo y Fecha.');
@@ -1030,11 +1037,14 @@
                         else if (name.includes('cargo')) {
                             field.setText(cargo);
                         }
-                        // Nombre en Hoja 4, Hoja 5 (Nombre_Evaluado_p5) y Hoja 5 (Nombre_Capital_Social_p5)
-                        else if (name.includes('nombre') || name.includes('evaluado')) {
-                            if (!name.includes('firma')) {
-                                field.setText(nombre);
-                            }
+                        // Comentarios del Evaluado (Hoja 5)
+                        else if (name.includes('comentarios')) {
+                            field.setText(comentarios);
+                        }
+                        // Nombre en Hoja 4 (Eval_Nombre_Evaluado_p4), Hoja 5 (Nombre_Evaluado_p5) y Hoja 5 (Nombre_Capital_Social_p5)
+                        // NOTA CLAVE: Solo campos de Nombre, sin confundir con comentarios ni firma
+                        else if (name.includes('nombre') && !name.includes('firma') && !name.includes('comentarios')) {
+                            field.setText(nombre);
                         }
                         // Fecha en Hojas 1, 2, 3 y Hoja 5 (Fecha_Capital_Social_p5)
                         else if (name.includes('fecha') || name.includes('date')) {
